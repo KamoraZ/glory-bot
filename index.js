@@ -200,6 +200,11 @@ app.use(session({
 // Web Dashboard Static Files
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Health check endpoint to prevent Render from sleeping
+app.get('/ping', (req, res) => {
+    res.status(200).send('Bot is active and running 24/7!');
+});
+
 // Discord OAuth2 Authentication Routes & Instant Demo Fallback
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID || '123456789012345678';
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || 'mock_secret';
