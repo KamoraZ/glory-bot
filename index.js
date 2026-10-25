@@ -1442,7 +1442,14 @@ if (!process.env.DISCORD_TOKEN) {
     console.error('❌ LỖI NGHIÊM TRỌNG: Chưa cấu hình biến môi trường DISCORD_TOKEN trên Render!');
 } else {
     console.log('🔑 DISCORD_TOKEN status: Loaded (length:', process.env.DISCORD_TOKEN.length, ', starts with:', process.env.DISCORD_TOKEN.substring(0, 4) + '...)');
-    client.login(process.env.DISCORD_TOKEN).catch(err => {
-        console.error('❌ Lỗi đăng nhập Discord Bot:', err);
+    
+    client.on('debug', info => {
+        console.log('[DISCORD DEBUG]:', info);
+    });
+
+    client.login(process.env.DISCORD_TOKEN).then(() => {
+        console.log('[DISCORD] client.login() promise resolved successfully.');
+    }).catch(err => {
+        console.error('❌ Lỗi đăng nhập Discord Bot (catch):', err);
     });
 }
