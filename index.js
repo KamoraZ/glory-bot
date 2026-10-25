@@ -1057,7 +1057,16 @@ client.once('clientReady', async () => {
             { body: commandsArray },
         );
 
-        console.log('✨ Đã đăng ký thành công tất cả Slash Commands (Global)!');
+        // Xóa sạch các lệnh guild cũ còn sót lại gây ra tình trạng dupe lệnh
+        for (const [guildId, guild] of client.guilds.cache) {
+            await rest.put(
+                Routes.applicationGuildCommands(client.user.id, guildId),
+                { body: [] },
+            );
+            console.log(`🧹 Đã xóa guild slash commands cũ trên server: ${guild.name}`);
+        }
+
+        console.log('✨ Đã đăng ký thành công tất cả Slash Commands (Global) và dọn sạch lệnh dupe!');
     } catch (error) {
         console.error('❌ Lỗi khi đăng ký commands:', error);
     }
