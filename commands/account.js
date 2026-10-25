@@ -5,39 +5,28 @@ const path = require('path');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('account')
-        .setDescription('Kiểm tra thông tin tài khoản Minecraft đã liên kết từ Glory Client'),
+        .setDescription('Kiểm tra thông tin tài khoản Minecraft đã liên kết')
+        .addUserOption(option =>
+            option.setName('user')
+                .setDescription('Thành viên cần kiểm tra (để trống nếu kiểm tra chính mình)')
+                .setRequired(false)),
     async execute(interaction) {
         const targetUser = interaction.options.getUser('user') || interaction.user;
-        const renderApiUrl = process.env.RENDER_API_URL || process.env.FRIEND_RENDER_URL || 'https://glory-bot-gxg5.onrender.com';
 
-        await interaction.deferReply({ ephemeral: true });
-
+        const linkedAccountsPath = path.join(__dirname, '..', 'linkedAccounts.json');
         let accountData = null;
 
-        // Try fetching from Render API first
         try {
-            const response = await fetch(`${renderApiUrl}/api/account/${targetUser.id}`);
-            if (response.ok) {
-                accountData = await response.json();
+            if (fs.existsSync(linkedAccountsPath)) {
+                const accounts = JSON.parse(fs.readFileSync(linkedAccountsPath, 'utf8'));
+                accountData = accounts[targetUser.id];
             }
-        } catch (e) {
-            console.warn('Render API fetch failed, falling back to local storage:', e.message);
-        }
-
-        // Fallback to local linkedAccounts.json if API failed or returned 401/404
-        if (!accountData || !accountData.mcUsername) {
-            const linkedAccountsPath = path.join(__dirname, '..', 'linkedAccounts.json');
-            try {
-                if (fs.existsSync(linkedAccountsPath)) {
-                    const accounts = JSON.parse(fs.readFileSync(linkedAccountsPath, 'utf8'));
-                    accountData = accounts[targetUser.id];
-                }
-            } catch (e) {}
-        }
+        } catch (e) {}
 
         if (!accountData || !accountData.mcUsername) {
-            return interaction.editReply({
-                content: `❌ **${targetUser.tag}** chưa liên kết tài khoản Minecraft từ Glory Client!`
+            return interaction.reply({
+                content: `❌ **${targetUser.tag}** chưa liên kết tài khoản Minecraft từ Glory Client!`,
+                ephemeral: true
             });
         }
 
@@ -59,6 +48,6 @@ module.exports = {
             .setTimestamp()
             .setFooter({ text: 'Glory Client & Discord Integration System' });
 
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.reply({ embeds: [embed], ephemeral: true });
     },
 };

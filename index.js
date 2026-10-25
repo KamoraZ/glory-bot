@@ -1041,8 +1041,8 @@ app.get('/api/changelog', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🌐 Webhook server đang lắng nghe tại cổng ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🌐 Webhook server đang lắng nghe tại cổng ${PORT} trên 0.0.0.0`);
 });
 
 client.once('ready', async () => {
@@ -1432,6 +1432,10 @@ client.on('error', error => {
 
 client.on('warn', info => {
     console.warn('[DISCORD CLIENT WARN]:', info);
+});
+
+process.on('uncaughtException', error => {
+    console.error('❌ UNCAUGHT EXCEPTION:', error);
 });
 
 process.on('unhandledRejection', error => {
