@@ -1337,4 +1337,22 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.on('error', error => {
+    console.error('[DISCORD CLIENT ERROR]:', error);
+});
+
+client.on('warn', info => {
+    console.warn('[DISCORD CLIENT WARN]:', info);
+});
+
+process.on('unhandledRejection', error => {
+    console.error('[UNHANDLED REJECTION]:', error);
+});
+
+if (!process.env.DISCORD_TOKEN) {
+    console.error('❌ LỖI NGHIÊM TRỌNG: Chưa cấu hình biến môi trường DISCORD_TOKEN trên Render!');
+} else {
+    client.login(process.env.DISCORD_TOKEN).catch(err => {
+        console.error('❌ Lỗi đăng nhập Discord Bot:', err);
+    });
+}
