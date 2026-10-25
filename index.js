@@ -205,6 +205,31 @@ app.get('/ping', (req, res) => {
     res.status(200).send('Bot is active and running 24/7!');
 });
 
+// Terms of Service & Privacy Policy Routes
+app.get('/terms', (req, res) => {
+    res.send(`
+        <html>
+            <head><title>Điều khoản dịch vụ - Glory Bot</title></head>
+            <body style="font-family: Arial; padding: 40px; max-width: 800px; margin: auto; background: #121212; color: #fff;">
+                <h1>📜 Điều khoản dịch vụ (Terms of Service)</h1>
+                <p>Khi sử dụng bot và các dịch vụ liên quan đến Glory Bot, bạn đồng ý tuân thủ các quy định của cộng đồng.</p>
+            </body>
+        </html>
+    `);
+});
+
+app.get('/privacy', (req, res) => {
+    res.send(`
+        <html>
+            <head><title>Chính sách bảo mật - Glory Bot</title></head>
+            <body style="font-family: Arial; padding: 40px; max-width: 800px; margin: auto; background: #121212; color: #fff;">
+                <h1>🔒 Chính sách bảo mật (Privacy Policy)</h1>
+                <p>Chúng tôi cam kết bảo mật thông tin tài khoản Discord và Minecraft của bạn. Dữ liệu chỉ dùng cho mục đích xác thực và quản lý server.</p>
+            </body>
+        </html>
+    `);
+});
+
 // Discord OAuth2 Authentication Routes & Instant Demo Fallback
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID || '123456789012345678';
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || 'mock_secret';
