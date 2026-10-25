@@ -2,6 +2,28 @@ const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, Butt
 const fs = require('fs');
 const path = require('path');
 
+async function getOrCreateVerifiedRole(guild, roleTitle = 'Verified') {
+    let targetName = roleTitle && roleTitle.toLowerCase().includes('admin') ? 'Administrator' : (roleTitle || 'Verified');
+    let role = guild.roles.cache.find(r => 
+        r.name.toLowerCase() === targetName.toLowerCase() || 
+        r.name.toLowerCase() === 'verified' ||
+        r.name.toLowerCase() === 'thành viên'
+    );
+    if (!role) {
+        try {
+            role = await guild.roles.create({
+                name: targetName,
+                color: targetName.toLowerCase().includes('admin') ? 0xE74C3C : 0x57F287,
+                reason: `Tự động tạo role cho người chơi xác thực: ${targetName}`
+            });
+            console.log(`[ROLE] Đã tạo role mới "${targetName}" trong server ${guild.name}`);
+        } catch (err) {
+            console.error(`[ROLE ERROR] Không thể tạo role "${targetName}" trong server ${guild.name}:`, err.message);
+        }
+    }
+    return role;
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('verify')
@@ -162,10 +184,10 @@ module.exports = {
         if (guild) {
             const member = interaction.member;
             if (member) {
-                let roleName = profile.roleTitle && profile.roleTitle.toLowerCase().includes('admin') ? 'Administrator' : 'Verified';
-                let targetRole = guild.roles.cache.find(r => r.name.toLowerCase() === roleName.toLowerCase() || r.name.toLowerCase() === 'verified');
+                const targetRole = await getOrCreateVerifiedRole(guild, profile.roleTitle);
                 if (targetRole) {
-                    await member.roles.add(targetRole, `Glory Friend ID Verify: ${profile.mcUsername}`).catch(() => {});
+                    await member.roles.add(targetRole, `Glory Friend ID Verify: ${profile.mcUsername}`);
+                    console.log(`[VERIFY COMMAND] Đã cấp thành công role ${targetRole.name} cho ${member.user.tag}`);
                 }
             }
         }
