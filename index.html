@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glory Maker • Next-Gen Command Center & Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darker: '#060913',
+                        card: '#0f172a',
+                        sidebar: '#090e1a',
+                        accent: '#6366f1'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glow-indigo { box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.4); }
+        .glow-emerald { box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.4); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #060913; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    </style>
+</head>
+<body class="bg-darker text-slate-100 min-h-screen flex font-sans selection:bg-indigo-500 selection:text-white">
+
+    <!-- Login Screen / Modal -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-darker/95 backdrop-blur-2xl flex items-center justify-center p-4">
+        <div class="glass border border-slate-800 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl space-y-6 glow-indigo">
+            <div class="relative w-24 h-24 mx-auto">
+                <div class="absolute inset-0 bg-indigo-500 rounded-3xl blur-xl opacity-50 animate-pulse"></div>
+                <div class="relative bg-gradient-to-tr from-indigo-600 to-violet-600 w-24 h-24 rounded-3xl flex items-center justify-center text-white text-4xl shadow-xl">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black tracking-wider bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">GLORY MAKER COMMAND</h1>
+                <p class="text-xs text-slate-400 mt-2">Hệ thống quản trị Bot Discord tối tân & Tự động hóa toàn diện 24/7</p>
+            </div>
+            <div id="login-error-banner" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs p-3 rounded-xl font-medium"></div>
+            <div class="space-y-3">
+                <a href="/auth/discord" class="w-full bg-[#5865F2] hover:bg-[#4752C4] font-bold py-3.5 px-6 rounded-2xl transition duration-200 shadow-lg shadow-indigo-500/30 flex items-center justify-center space-x-3 text-white text-xs">
+                    <i class="fa-brands fa-discord text-lg"></i>
+                    <span>Đăng nhập với Discord OAuth2</span>
+                </a>
+                <a href="/auth/demo" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-bold py-3.5 px-6 rounded-2xl transition duration-200 shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 text-white text-xs glow-emerald">
+                    <i class="fa-solid fa-bolt text-sm"></i>
+                    <span>⚡ Đăng nhập Nhanh (Demo / Super Admin)</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Wrapper -->
+    <div id="app-wrapper" class="flex h-screen w-screen overflow-hidden hidden">
+        
+        <!-- Sidebar -->
+        <aside class="w-72 bg-sidebar border-r border-slate-800/80 flex flex-col justify-between z-20">
+            <div>
+                <!-- Brand -->
+                <div class="p-6 border-b border-slate-800/80 flex items-center space-x-3">
+                    <div class="bg-gradient-to-tr from-indigo-600 to-violet-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-600/40">
+                        <i class="fa-solid fa-cube text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-black text-sm tracking-widest text-indigo-400">GLORY MAKER</h2>
+                        <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1.5 mt-0.5"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online 24/7 Production</span>
+                    </div>
+                </div>
+
+                <!-- Server Selector -->
+                <div class="p-4 border-b border-slate-800/80">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Server Đang Quản Lý</label>
+                    <select id="server-selector" onchange="onServerChange()" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-indigo-500 text-slate-200 shadow-inner">
+                        <option value="">Đang tải danh sách server...</option>
+                    </select>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="p-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-290px)]">
+                    <button onclick="switchTab('overview')" id="tab-overview" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+                        <i class="fa-solid fa-chart-pie w-4 text-center"></i>
+                        <span>Tổng quan & Diag</span>
+                    </button>
+                    <button onclick="switchTab('servers')" id="tab-servers" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <i class="fa-solid fa-server w-4 text-center"></i>
+                        <span>Quản lý Server & Bot</span>
+                    </button>
+                    <button onclick="switchTab('updates')" id="tab-updates" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <i class="fa-solid fa-rocket w-4 text-center"></i>
+                        <span>Cập nhật & Changelog</span>
+                    </button>
+                    <button onclick="switchTab('social')" id="tab-social" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <i class="fa-solid fa-share-nodes w-4 text-center"></i>
+                        <span>Đăng bài Mạng Xã Hội</span>
+                    </button>
+                    <button onclick="switchTab('roles')" id="tab-roles" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <i class="fa-solid fa-shield-halved w-4 text-center"></i>
+                        <span>Bảng nhận Role (Panel)</span>
+                    </button>
+                    <button onclick="switchTab('sticky')" id="tab-sticky" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <i class="fa-solid fa-note-sticky w-4 text-center"></i>
+                        <span>Sticky Messages</span>
+                    </button>
+                    <button onclick="switchTab('tickets')" id="tab-tickets" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <i class="fa-solid fa-ticket w-4 text-center"></i>
+                        <span>Hệ thống Ticket</span>
+                    </button>
+                    <button onclick="switchTab('backups')" id="tab-backups" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <i class="fa-solid fa-database w-4 text-center"></i>
+                        <span>Sao lưu Server</span>
+                    </button>
+                    <button onclick="switchTab('link')" id="tab-link" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <i class="fa-solid fa-link w-4 text-center"></i>
+                        <span>Liên kết MC & Discord</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- User Profile Footer -->
+            <div class="p-4 border-t border-slate-800/80 flex items-center justify-between bg-darker/60">
+                <div class="flex items-center space-x-3 truncate">
+                    <img id="user-avatar" src="" class="w-9 h-9 rounded-xl border border-slate-700 object-cover shadow" alt="Avatar">
+                    <div class="truncate">
+                        <h4 id="user-name" class="text-xs font-bold truncate w-24 text-slate-200">User</h4>
+                        <span class="text-[10px] text-indigo-400 font-semibold">Super Administrator</span>
+                    </div>
+                </div>
+                <a href="/auth/logout" title="Đăng xuất" class="text-slate-400 hover:text-rose-400 p-2 rounded-xl hover:bg-slate-800/80 transition">
+                    <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-darker">
+            
+            <!-- Topbar -->
+            <header class="glass border-b border-slate-800/80 px-8 py-4 flex justify-between items-center sticky top-0 z-10">
+                <h2 id="page-title" class="text-base font-black tracking-wide text-white">Tổng quan & Diag</h2>
+                <div class="flex items-center space-x-3">
+                    <span id="active-server-badge" class="bg-indigo-500/10 text-indigo-400 text-xs px-3.5 py-1.5 rounded-xl border border-indigo-500/30 font-bold shadow-sm">Chưa chọn server</span>
+                </div>
+            </header>
+
+            <!-- Content Container -->
+            <div class="p-8 space-y-8 flex-grow">
+
+                <!-- TAB 1: OVERVIEW & DIAGNOSTICS -->
+                <div id="section-overview" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="glass p-6 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
+                            <div class="absolute -right-4 -bottom-4 text-indigo-500/10 text-7xl"><i class="fa-solid fa-robot"></i></div>
+                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Trạng thái Bot</p>
+                            <h3 id="stat-tag" class="text-xl font-black mt-2 text-indigo-400 flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span> Online</h3>
+                            <p id="stat-botid" class="text-[10px] text-slate-500 mt-1">ID: Đang tải...</p>
+                        </div>
+                        <div class="glass p-6 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
+                            <div class="absolute -right-4 -bottom-4 text-emerald-500/10 text-7xl"><i class="fa-solid fa-server"></i></div>
+                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Server Quản Lý</p>
+                            <h3 id="stat-guilds" class="text-2xl font-black mt-2 text-white">0</h3>
+                            <p class="text-[10px] text-emerald-400 mt-1 font-semibold">● Hoạt động ổn định</p>
+                        </div>
+                        <div class="glass p-6 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
+                            <div class="absolute -right-4 -bottom-4 text-amber-500/10 text-7xl"><i class="fa-solid fa-terminal"></i></div>
+                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Tổng Lệnh Slash</p>
+                            <h3 id="stat-commands" class="text-2xl font-black mt-2 text-white">0</h3>
+                            <p class="text-[10px] text-amber-400 mt-1 font-semibold">● Đồng bộ toàn cầu</p>
+                        </div>
+                        <div class="glass p-6 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
+                            <div class="absolute -right-4 -bottom-4 text-purple-500/10 text-7xl"><i class="fa-solid fa-microchip"></i></div>
+                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">System Health</p>
+                            <h3 id="stat-uptime" class="text-lg font-black mt-2 text-purple-400">0h 0m</h3>
+                            <p id="stat-memory" class="text-[10px] text-slate-400 mt-1">RAM: 0 MB / Ping: 0ms</p>
+                        </div>
+                    </div>
+
+                    <!-- Bot Commands & Diagnostics Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="glass p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                            <h3 class="text-sm font-black flex items-center space-x-2 text-indigo-400">
+                                <i class="fa-solid fa-list-check"></i>
+                                <span>Danh sách Lệnh Bot Đã Đăng Ký (`/`)</span>
+                            </h3>
+                            <div id="commands-list-container" class="flex flex-wrap gap-2 max-h-60 overflow-y-auto p-2">
+                                <span class="text-xs text-slate-500">Đang tải danh sách lệnh...</span>
+                            </div>
+                        </div>
+
+                        <div class="glass p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                            <h3 class="text-sm font-black flex items-center space-x-2 text-emerald-400">
+                                <i class="fa-solid fa-shield-cat"></i>
+                                <span>Bảo Mật & Tính Năng Tự Động 24/7</span>
+                            </h3>
+                            <div class="space-y-2.5 text-xs text-slate-300">
+                                <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+                                    <span>🛡️ Hệ thống Anti-Raid (10s window)</span>
+                                    <span class="text-emerald-400 font-bold">Đang bật</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+                                    <span>🪤 Trap Raid Channels (Honeypot Ban)</span>
+                                    <span class="text-emerald-400 font-bold">Hoạt động</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+                                    <span>📝 Sticky Messages Debounce</span>
+                                    <span class="text-emerald-400 font-bold">1.5s Active</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+                                    <span>💾 Tự động Backup Server (Mỗi 3 tiếng)</span>
+                                    <span class="text-emerald-400 font-bold">Auto</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: SERVERS & BOT MANAGEMENT -->
+                <div id="section-servers" class="space-y-6 hidden">
+                    <div class="glass p-8 rounded-3xl border border-slate-800 shadow-xl space-y-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 class="text-base font-black flex items-center space-x-2 text-indigo-400">
+                                    <i class="fa-solid fa-server"></i>
+                                    <span>Danh sách Server Bot Đang Phục Vụ</span>
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-1">Chọn server để xem chi tiết kênh, vai trò và thống kê thành viên.</p>
+                            </div>
+                            <button onclick="loadServerDetails()" class="bg-indigo-600 hover:bg-indigo-500 font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-lg shadow-indigo-600/30">
+                                <i class="fa-solid fa-rotate mr-1.5"></i> Làm mới
+                            </button>
+                        </div>
+                        <div id="servers-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Server Deep Inspection -->
+                    <div id="server-deep-card" class="glass p-8 rounded-3xl border border-slate-800 shadow-xl space-y-6 hidden">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                            <div class="flex items-center space-x-4">
+                                <img id="deep-guild-icon" src="" class="w-12 h-12 rounded-2xl object-cover border border-slate-700 shadow" alt="Icon">
+                                <div>
+                                    <h4 id="deep-guild-name" class="text-base font-black text-white">Tên Server</h4>
+                                    <span id="deep-guild-members" class="text-xs text-slate-400">0 thành viên</span>
+                                </div>
+                            </div>
+                            <span class="bg-emerald-500/10 text-emerald-400 text-xs px-3 py-1.5 rounded-xl border border-emerald-500/30 font-bold">Connected</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📁 Danh sách Kênh (<span id="deep-channel-count">0</span>)</h5>
+                                <div id="deep-channels-list" class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 max-h-60 overflow-y-auto space-y-2 text-xs"></div>
+                            </div>
+                            <div>
+                                <h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">🛡️ Danh sách Roles (<span id="deep-role-count">0</span>)</h5>
+                                <div id="deep-roles-list" class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 max-h-60 overflow-y-auto space-y-2 text-xs"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: UPDATES & CHANGELOG MANAGER -->
+                <div id="section-updates" class="space-y-6 hidden">
+                    <div class="glass p-8 rounded-3xl border border-slate-800 shadow-xl max-w-3xl space-y-6">
+                        <div>
+                            <h3 class="text-base font-black flex items-center space-x-2 text-emerald-400">
+                                <i class="fa-solid fa-rocket"></i>
+                                <span>Đẩy Cập Nhật & Changelog Lên Discord / Launcher (`/webhook/changelog`)</span>
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">Phát hành phiên bản cập nhật mới tới tất cả người dùng và tự động đồng bộ UI Launcher.</p>
+                        </div>
+                        <form onsubmit="handleChangelogPush(event)" class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Phiên bản (Version)</label>
+                                    <input type="text" id="update-version" required value="v1.2.0" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tác giả / Publisher</label>
+                                    <input type="text" id="update-author" value="Glory Core Team" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tiêu đề thông báo</label>
+                                <input type="text" id="update-title" required value="Nâng cấp toàn diện Dashboard & Fix lỗi" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Mô tả chi tiết thay đổi (Markdown)</label>
+                                <textarea id="update-desc" rows="5" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">- Fix triệt tiêu lỗi đăng nhập Discord OAuth.\n- Nâng cấp giao diện Web Dashboard siêu hiện đại.\n- Tối ưu hiệu năng bot phản hồi tức thì.</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Đường dẫn tải bản cập nhật (Download URL)</label>
+                                <input type="url" id="update-url" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-bold py-3.5 rounded-xl transition text-xs shadow-lg shadow-emerald-600/30">
+                                🚀 Phát hành Cập Nhật Ngay Lập Tức
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 4: SOCIAL MEDIA HUB -->
+                <div id="section-social" class="space-y-6 hidden">
+                    <div class="glass p-8 rounded-3xl border border-slate-800 shadow-xl max-w-3xl space-y-6">
+                        <h3 class="text-base font-black mb-2 flex items-center space-x-2 text-pink-500">
+                            <i class="fa-solid fa-share-nodes"></i>
+                            <span>Đăng bài / Video Mạng Xã Hội (`/post-mxh`)</span>
+                        </h3>
+                        <form onsubmit="handleSocialPost(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nền tảng</label>
+                                <select id="soc-platform" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                                    <option value="TikTok">🎵 TikTok (Tự động lấy Thumbnail)</option>
+                                    <option value="Facebook">📘 Facebook</option>
+                                    <option value="YouTube">▶️ YouTube (Tự động lấy Thumbnail)</option>
+                                    <option value="Khác">📸 Instagram / Khác</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Đường dẫn bài viết / video</label>
+                                <input type="url" id="soc-link" required placeholder="https://www.tiktok.com/@..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tiêu đề (Tùy chọn)</label>
+                                <input type="text" id="soc-title" placeholder="Tiêu đề thông báo..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Channel ID nhận bài</label>
+                                <input type="text" id="soc-channel" placeholder="Nhập ID kênh Discord hoặc để trống dùng mặc định" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 font-bold py-3.5 rounded-xl transition text-xs shadow-lg shadow-indigo-600/30">
+                                Đăng lên Discord (Kèm ping Media Role)
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 5: ROLE PANELS -->
+                <div id="section-roles" class="space-y-6 hidden">
+                    <div class="glass p-8 rounded-3xl border border-slate-800 shadow-xl max-w-3xl space-y-6">
+                        <h3 class="text-base font-black mb-2 flex items-center space-x-2 text-emerald-500">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <span>Tạo Bảng Nhận Role Tương Tác (`/role-panel`)</span>
+                        </h3>
+                        <form onsubmit="handleRolePanel(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Channel ID gửi bảng role</label>
+                                <input type="text" id="role-channel" required placeholder="ID kênh Discord..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tiêu đề bảng</label>
+                                <input type="text" id="role-title" required placeholder="Ví dụ: NHẬN ROLE THÔNG BÁO" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Role ID 1</label>
+                                    <input type="text" id="role-id-1" required placeholder="ID Role..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nhãn nút 1</label>
+                                    <input type="text" id="role-label-1" required placeholder="Ví dụ: Thông Báo Mới" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-3.5 rounded-xl transition text-xs shadow-lg shadow-emerald-600/30">
+                                Tạo Bảng Role Panel
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 6: STICKY MESSAGES -->
+                <div id="section-sticky" class="space-y-6 hidden">
+                    <div class="glass p-8 rounded-3xl border border-slate-800 shadow-xl max-w-3xl space-y-6">
+                        <h3 class="text-base font-black mb-2 flex items-center space-x-2 text-amber-500">
+                            <i class="fa-solid fa-note-sticky"></i>
+                            <span>Cài đặt Sticky Message (`/sticky`)</span>
+                        </h3>
+                        <form onsubmit="handleSticky(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Channel ID</label>
+                                <input type="text" id="sticky-channel" required placeholder="ID kênh cần ghim tin nhắn..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nội dung ghi chú dính</label>
+                                <textarea id="sticky-content" rows="4" required placeholder="Nội dung luôn ghim ở cuối kênh..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold"></textarea>
+                            </div>
+                            <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 font-bold py-3.5 rounded-xl transition text-xs shadow-lg shadow-amber-600/30">
+                                Kích hoạt Sticky Message
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 7: TICKETS -->
+                <div id="section-tickets" class="space-y-6 hidden">
+                    <div class="glass p-8 rounded-3xl border border-slate-800 shadow-xl max-w-3xl space-y-6">
+                        <h3 class="text-base font-black mb-2 flex items-center space-x-2 text-purple-500">
+                            <i class="fa-solid fa-ticket"></i>
+                            <span>Cấu hình Hệ thống Ticket (`/setup-ticket`)</span>
+                        </h3>
+                        <form onsubmit="handleTicketSetup(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Category ID chứa kênh ticket</label>
+                                <input type="text" id="ticket-category" required placeholder="ID danh mục..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Staff Role ID (Role hỗ trợ)</label>
+                                <input type="text" id="ticket-staff" required placeholder="ID Role nhân viên..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Channel ID gửi bảng tạo ticket</label>
+                                <input type="text" id="ticket-channel" required placeholder="ID kênh gửi thông điệp tạo ticket..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 font-bold py-3.5 rounded-xl transition text-xs shadow-lg shadow-purple-600/30">
+                                Thiết lập & Gửi Bảng Ticket
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 8: BACKUPS -->
+                <div id="section-backups" class="space-y-6 hidden">
+                    <div class="glass p-8 rounded-3xl border border-slate-800 shadow-xl max-w-3xl space-y-6">
+                        <h3 class="text-base font-black flex items-center space-x-2 text-blue-500">
+                            <i class="fa-solid fa-database"></i>
+                            <span>Sao lưu Dữ liệu Server (`/backup`)</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">Sao lưu toàn bộ cấu trúc kênh, tin nhắn và cấu hình server thành tệp JSON an toàn.</p>
+                        <button onclick="triggerBackup()" class="bg-blue-600 hover:bg-blue-500 font-bold py-3.5 px-6 rounded-xl transition text-xs shadow-lg shadow-blue-600/30 flex items-center space-x-2">
+                            <i class="fa-solid fa-download"></i>
+                            <span>Tạo bản sao lưu ngay bây giờ</span>
+                        </button>
+                        <div id="backup-result" class="text-xs font-medium"></div>
+                    </div>
+                </div>
+
+                <!-- TAB 9: LINK MC & DISCORD -->
+                <div id="section-link" class="space-y-6 hidden">
+                    <div class="glass p-8 rounded-3xl border border-slate-800 shadow-xl max-w-3xl space-y-6">
+                        <div>
+                            <h3 class="text-base font-black flex items-center space-x-2 text-indigo-400">
+                                <i class="fa-solid fa-link"></i>
+                                <span>Liên kết Tài khoản Minecraft Launcher với Discord</span>
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">Đồng bộ tài khoản để nhận Role xác thực tự động trên Discord server và đồng bộ dữ liệu Launcher.</p>
+                        </div>
+                        <div id="link-status-box" class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl text-xs space-y-2">
+                            <span class="text-slate-400">Đang kiểm tra trạng thái liên kết...</span>
+                        </div>
+                        <form onsubmit="handleAccountLink(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tên tài khoản Minecraft (In-game Username)</label>
+                                <input type="text" id="mc-username" required placeholder="Ví dụ: Steve, Alex, ..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold">
+                            </div>
+                            <button type="submit" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-bold py-3.5 rounded-xl transition text-xs shadow-lg shadow-indigo-600/30">
+                                🔗 Xác nhận Liên kết Tài khoản MC & Discord
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Alert -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 glass px-6 py-3.5 rounded-2xl shadow-2xl text-xs font-bold hidden transition duration-300 border"></div>
+
+    <script>
+        let currentUser = null;
+        let currentGuilds = [];
+        let selectedGuildId = null;
+        let botDetailsData = null;
+
+        async function initDashboard() {
+            try {
+                const userRes = await fetch('/api/user');
+                const userData = await userRes.json();
+                if (!userData.loggedIn) {
+                    document.getElementById('login-screen').classList.remove('hidden');
+                    return;
+                }
+                currentUser = userData.user;
+                document.getElementById('user-name').innerText = currentUser.username;
+                document.getElementById('user-avatar').src = `https://cdn.discordapp.com/avatars/${currentUser.id}/${currentUser.avatar}.png`;
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-wrapper').classList.remove('hidden');
+
+                // Check Link Status
+                checkLinkStatus();
+
+                // Load bot diagnostics & details
+                const botRes = await fetch('/api/dashboard/bot-details');
+                const botData = await botRes.json();
+                if (botData.success) {
+                    botDetailsData = botData;
+                    document.getElementById('stat-tag').innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block mr-1"></span> ${botData.bot.tag}`;
+                    document.getElementById('stat-botid').innerText = `ID: ${botData.bot.id}`;
+                    document.getElementById('stat-guilds').innerText = botData.guilds.length;
+                    document.getElementById('stat-commands').innerText = botData.commands.length;
+                    
+                    const uptimeSec = Math.floor(botData.bot.uptime);
+                    const hours = Math.floor(uptimeSec / 3600);
+                    const mins = Math.floor((uptimeSec % 3600) / 60);
+                    document.getElementById('stat-uptime').innerText = `${hours}h ${mins}m`;
+                    document.getElementById('stat-memory').innerText = `RAM: ${botData.bot.memory.rss} / Ping: ${botData.bot.ping}ms`;
+
+                    // Populate commands list
+                    const cmdContainer = document.getElementById('commands-list-container');
+                    cmdContainer.innerHTML = botData.commands.map(c => `<span class="bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg text-[11px] font-bold">/${c}</span>`).join('');
+
+                    // Populate servers grid
+                    const serversGrid = document.getElementById('servers-grid');
+                    serversGrid.innerHTML = botData.guilds.map(g => `
+                        <div onclick="inspectServer('${g.id}')" class="glass bg-slate-900/60 hover:bg-slate-800/80 p-5 rounded-2xl border border-slate-800 cursor-pointer transition space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-600/20 flex items-center justify-center text-indigo-400 font-black"><i class="fa-solid fa-server"></i></div>
+                                <div class="truncate">
+                                    <h4 class="font-bold text-xs truncate text-white">${g.name}</h4>
+                                    <span class="text-[10px] text-slate-400">${g.memberCount} thành viên</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    currentGuilds = botData.guilds;
+                    const selector = document.getElementById('server-selector');
+                    selector.innerHTML = '';
+                    currentGuilds.forEach(g => {
+                        const opt = document.createElement('option');
+                        opt.value = g.id;
+                        opt.innerText = g.name;
+                        selector.appendChild(opt);
+                    });
+                    if (currentGuilds.length > 0) {
+                        selectedGuildId = currentGuilds[0].id;
+                        document.getElementById('active-server-badge').innerText = currentGuilds[0].name;
+                        inspectServer(selectedGuildId);
+                    }
+                }
+            } catch (e) {
+                console.error('Lỗi khởi tạo dashboard:', e);
+            }
+        }
+
+        function onServerChange() {
+            selectedGuildId = document.getElementById('server-selector').value;
+            const g = currentGuilds.find(x => x.id === selectedGuildId);
+            if (g) {
+                document.getElementById('active-server-badge').innerText = g.name;
+                inspectServer(selectedGuildId);
+            }
+        }
+
+        async function inspectServer(guildId) {
+            try {
+                const res = await fetch(`/api/dashboard/server-details/${guildId}`);
+                const data = await res.json();
+                if (data.success) {
+                    const g = data.guild;
+                    document.getElementById('server-deep-card').classList.remove('hidden');
+                    document.getElementById('deep-guild-name').innerText = g.name;
+                    document.getElementById('deep-guild-members').innerText = `${g.memberCount} thành viên • ${g.channels.length} kênh • ${g.roles.length} roles`;
+                    document.getElementById('deep-channel-count').innerText = g.channels.length;
+                    document.getElementById('deep-role-count').innerText = g.roles.length;
+
+                    document.getElementById('deep-channels-list').innerHTML = g.channels.map(c => `
+                        <div class="flex justify-between items-center bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                            <span class="font-bold text-indigo-300"># ${c.name}</span>
+                            <span class="text-[10px] text-slate-500">${c.isText ? 'Text Channel' : 'Voice/Other'}</span>
+                        </div>
+                    `).join('');
+
+                    document.getElementById('deep-roles-list').innerHTML = g.roles.map(r => `
+                        <div class="flex justify-between items-center bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                            <span class="font-bold" style="color: ${r.color || '#fff'}">@ ${r.name}</span>
+                            <span class="text-[10px] text-slate-500">ID: ${r.id}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {}
+        }
+
+        async function checkLinkStatus() {
+            try {
+                const res = await fetch('/api/link/status');
+                const data = await res.json();
+                const box = document.getElementById('link-status-box');
+                if (data.linked) {
+                    box.innerHTML = `
+                        <div class="text-emerald-400 font-bold flex items-center gap-2"><i class="fa-solid fa-circle-check"></i> Đã liên kết tài khoản Minecraft!</div>
+                        <div class="text-slate-300 mt-1">🎮 Minecraft Username: <span class="font-mono text-indigo-300 font-bold">${data.mcData.mcUsername}</span></div>
+                        <div class="text-slate-300 mt-1">🔐 Loại tài khoản: <span class="text-indigo-200">${data.mcData.accountType || 'Crack / Offline'}</span></div>
+                        <div class="text-slate-300 mt-1">👑 Chức danh (Title): <span class="text-amber-300 font-bold">${data.mcData.roleTitle || 'Member'}</span></div>
+                        <div class="text-slate-400 text-[10px] mt-1">🕒 Thời gian liên kết: ${new Date(data.mcData.linkedAt).toLocaleString()}</div>
+                    `;
+                    document.getElementById('mc-username').value = data.mcData.mcUsername;
+                } else {
+                    box.innerHTML = `<span class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Tài khoản Discord của bạn chưa liên kết với Minecraft Launcher.</span>`;
+                }
+            } catch (e) {}
+        }
+
+        async function handleAccountLink(e) {
+            e.preventDefault();
+            const mcUsername = document.getElementById('mc-username').value;
+            try {
+                const res = await fetch('/api/link/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mcUsername, guildId: selectedGuildId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✅ ' + data.message);
+                    checkLinkStatus();
+                } else {
+                    showToast('❌ ' + data.error, true);
+                }
+            } catch (err) {
+                showToast('❌ Lỗi kết nối: ' + err.message, true);
+            }
+        }
+
+        function switchTab(tabId) {
+            ['overview', 'servers', 'updates', 'social', 'roles', 'sticky', 'tickets', 'backups', 'link'].forEach(t => {
+                document.getElementById(`section-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).className = "w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800/60 hover:text-slate-200";
+            });
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).className = "w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-lg shadow-indigo-600/30";
+            
+            const titles = {
+                overview: 'Tổng quan & Diag',
+                servers: 'Quản lý Server & Bot',
+                updates: 'Cập nhật & Changelog',
+                social: 'Đăng bài Mạng Xã Hội',
+                roles: 'Bảng nhận Role (Panel)',
+                sticky: 'Sticky Messages',
+                tickets: 'Hệ thống Ticket',
+                backups: 'Sao lưu Server',
+                link: 'Liên kết MC & Discord'
+            };
+            document.getElementById('page-title').innerText = titles[tabId];
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.className = `fixed bottom-6 right-6 z-50 glass px-6 py-3.5 rounded-2xl shadow-2xl text-xs font-bold transition duration-300 border ${isError ? 'bg-rose-950/90 border-rose-700/80 text-rose-200' : 'bg-emerald-950/90 border-emerald-700/80 text-emerald-200'}`;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+
+        async function handleChangelogPush(e) {
+            e.preventDefault();
+            const version = document.getElementById('update-version').value;
+            const author = document.getElementById('update-author').value;
+            const title = document.getElementById('update-title').value;
+            const description = document.getElementById('update-desc').value;
+            const downloadUrl = document.getElementById('update-url').value;
+
+            try {
+                const res = await fetch('/webhook/changelog', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guildId: selectedGuildId, version, title, description, downloadUrl, author })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('🚀 Đã phát hành bản cập nhật và đẩy thông báo lên Discord thành công!');
+                } else {
+                    showToast('❌ ' + (data.error || 'Lỗi phát hành'), true);
+                }
+            } catch (err) {
+                showToast('❌ Lỗi kết nối: ' + err.message, true);
+            }
+        }
+
+        async function handleSocialPost(e) {
+            e.preventDefault();
+            const platform = document.getElementById('soc-platform').value;
+            const link = document.getElementById('soc-link').value;
+            const title = document.getElementById('soc-title').value;
+            const channelId = document.getElementById('soc-channel').value;
+
+            try {
+                const res = await fetch('/api/dashboard/features/social-post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guildId: selectedGuildId, platform, link, title, channelId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✅ Đã đăng bài thành công lên Discord!');
+                } else {
+                    showToast('❌ ' + data.error, true);
+                }
+            } catch (err) {
+                showToast('❌ Lỗi kết nối: ' + err.message, true);
+            }
+        }
+
+        async function handleRolePanel(e) {
+            e.preventDefault();
+            const channelId = document.getElementById('role-channel').value;
+            const title = document.getElementById('role-title').value;
+            const roleId = document.getElementById('role-id-1').value;
+            const label = document.getElementById('role-label-1').value;
+
+            try {
+                const res = await fetch('/api/dashboard/features/role-panel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guildId: selectedGuildId, channelId, title, roleId, label })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✅ Đã tạo bảng Role Panel thành công!');
+                } else {
+                    showToast('❌ ' + data.error, true);
+                }
+            } catch (err) {
+                showToast('❌ Lỗi kết nối: ' + err.message, true);
+            }
+        }
+
+        async function handleSticky(e) {
+            e.preventDefault();
+            const channelId = document.getElementById('sticky-channel').value;
+            const content = document.getElementById('sticky-content').value;
+
+            try {
+                const res = await fetch('/api/dashboard/features/sticky', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guildId: selectedGuildId, channelId, content })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✅ Đã kích hoạt Sticky Message thành công!');
+                } else {
+                    showToast('❌ ' + data.error, true);
+                }
+            } catch (err) {
+                showToast('❌ Lỗi kết nối: ' + err.message, true);
+            }
+        }
+
+        async function handleTicketSetup(e) {
+            e.preventDefault();
+            const categoryId = document.getElementById('ticket-category').value;
+            const staffRoleId = document.getElementById('ticket-staff').value;
+            const channelId = document.getElementById('ticket-channel').value;
+
+            try {
+                const res = await fetch('/api/dashboard/features/ticket-setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guildId: selectedGuildId, categoryId, staffRoleId, channelId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✅ Đã thiết lập hệ thống Ticket thành công!');
+                } else {
+                    showToast('❌ ' + data.error, true);
+                }
+            } catch (err) {
+                showToast('❌ Lỗi kết nối: ' + err.message, true);
+            }
+        }
+
+        async function triggerBackup() {
+            const box = document.getElementById('backup-result');
+            box.innerText = 'Đang tiến hành sao lưu server...';
+            box.className = 'text-xs font-medium text-amber-400';
+            try {
+                const res = await fetch('/api/dashboard/features/backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guildId: selectedGuildId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    box.innerText = '✅ Đã sao lưu server thành công!';
+                    box.className = 'text-xs font-medium text-emerald-400';
+                    showToast('✅ Sao lưu dữ liệu server thành công!');
+                } else {
+                    box.innerText = '❌ ' + data.error;
+                    box.className = 'text-xs font-medium text-rose-400';
+                }
+            } catch (err) {
+                box.innerText = '❌ Lỗi: ' + err.message;
+                box.className = 'text-xs font-medium text-rose-400';
+            }
+        }
+
+        initDashboard();
+    </script>
+</body>
+</html>

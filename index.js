@@ -461,21 +461,22 @@ function getLinkedAccounts() {
     return {};
 }
 
-async function getOrCreateVerifiedRole(guild) {
+async function getOrCreateVerifiedRole(guild, roleTitle = 'Verified') {
+    let targetName = roleTitle && roleTitle.toLowerCase().includes('admin') ? 'Administrator' : (roleTitle || 'Verified');
     let role = guild.roles.cache.find(r => 
-        r.name.toLowerCase() === 'verified' || 
-        r.name.toLowerCase() === 'minecraft player' || 
+        r.name.toLowerCase() === targetName.toLowerCase() || 
+        r.name.toLowerCase() === 'verified' ||
         r.name.toLowerCase() === 'thành viên'
     );
     if (!role) {
         try {
             role = await guild.roles.create({
-                name: 'Verified',
-                color: 0x57F287,
-                reason: 'Tự động tạo role Verified cho người chơi đã xác thực Minecraft'
+                name: targetName,
+                color: targetName.toLowerCase().includes('admin') ? 0xE74C3C : 0x57F287,
+                reason: `Tự động tạo role cho người chơi xác thực: ${targetName}`
             });
         } catch (err) {
-            console.error('Không thể tự động tạo role Verified:', err);
+            console.error('Không thể tự động tạo role:', err);
         }
     }
     return role;
@@ -565,8 +566,7 @@ app.post('/api/client/link', async (req, res) => {
             if (guild) {
                 const member = await guild.members.fetch(discordId).catch(() => null);
                 if (member) {
-                    let roleName = roleTitle && roleTitle.toLowerCase().includes('admin') ? 'Administrator' : 'Verified';
-                    let targetRole = guild.roles.cache.find(r => r.name.toLowerCase() === roleName.toLowerCase() || r.name.toLowerCase() === 'verified');
+                    const targetRole = await getOrCreateVerifiedRole(guild, roleTitle);
                     if (targetRole) {
                         await member.roles.add(targetRole, `Glory Client Link: ${mcUsername} (${roleTitle})`).catch(() => {});
                     }
@@ -1163,8 +1163,7 @@ client.on('interactionCreate', async interaction => {
                 if (guild) {
                     const member = interaction.member;
                     if (member) {
-                        let roleName = record.roleTitle && record.roleTitle.toLowerCase().includes('admin') ? 'Administrator' : 'Verified';
-                        let targetRole = guild.roles.cache.find(r => r.name.toLowerCase() === roleName.toLowerCase() || r.name.toLowerCase() === 'verified');
+                        const targetRole = await getOrCreateVerifiedRole(guild, record.roleTitle);
                         if (targetRole) {
                             await member.roles.add(targetRole, `Glory Client Verified: ${record.mcUsername}`).catch(() => {});
                         }
