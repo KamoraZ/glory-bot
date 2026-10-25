@@ -461,23 +461,49 @@ function getLinkedAccounts() {
     return {};
 }
 
-async function getOrCreateVerifiedRole(guild, roleTitle = 'Verified') {
-    let targetName = roleTitle && roleTitle.toLowerCase().includes('admin') ? 'Administrator' : (roleTitle || 'Verified');
+// API to get account info for Discord bot /account command
+app.get('/api/account/:discordId', (req, res) => {
+    const { discordId } = req.params;
+    const accounts = getLinkedAccounts();
+    const accountData = accounts[discordId];
+    if (!accountData) {
+        return res.status(404).json({ success: false, error: 'Account not found' });
+    }
+    res.json(accountData);
+});
+
+// API to delete verification for Discord bot /delete-verify command
+app.delete('/api/delete-verify/:discordId', async (req, res) => {
+    const { discordId } = req.params;
+    const accounts = getLinkedAccounts();
+    if (!accounts[discordId]) {
+        return res.status(404).json({ success: false, error: 'Account not found' });
+    }
+    const linkedData = accounts[discordId];
+    delete accounts[discordId];
+    try {
+        fs.writeFileSync(linkedAccountsFile, JSON.stringify(accounts, null, 2), 'utf8');
+        res.json({ success: true, mcUsername: linkedData.mcUsername });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+async function getOrCreateVerifiedRole(guild) {
     let role = guild.roles.cache.find(r => 
-        r.name.toLowerCase() === targetName.toLowerCase() || 
-        r.name.toLowerCase() === 'verified' ||
+        r.name.toLowerCase() === 'verified' || 
         r.name.toLowerCase() === 'thành viên'
     );
     if (!role) {
         try {
             role = await guild.roles.create({
-                name: targetName,
-                color: targetName.toLowerCase().includes('admin') ? 0xE74C3C : 0x57F287,
-                reason: `Tự động tạo role cho người chơi xác thực: ${targetName}`
+                name: 'Verified',
+                color: 0x57F287,
+                reason: 'Tự động tạo role Verified cho người chơi xác thực'
             });
-            console.log(`[ROLE] Đã tạo role mới "${targetName}" trong server ${guild.name}`);
+            console.log(`[ROLE] Đã tạo role mới "Verified" trong server ${guild.name}`);
         } catch (err) {
-            console.error(`[ROLE ERROR] Không thể tạo role "${targetName}" trong server ${guild.name}:`, err.message);
+            console.error(`[ROLE ERROR] Không thể tạo role "Verified" trong server ${guild.name}:`, err.message);
         }
     } else {
         console.log(`[ROLE] Đã tìm thấy role "${role.name}" trong server ${guild.name}`);
