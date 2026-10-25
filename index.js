@@ -436,6 +436,26 @@ function getLinkedAccounts() {
     return {};
 }
 
+async function getOrCreateVerifiedRole(guild) {
+    let role = guild.roles.cache.find(r => 
+        r.name.toLowerCase() === 'verified' || 
+        r.name.toLowerCase() === 'minecraft player' || 
+        r.name.toLowerCase() === 'thành viên'
+    );
+    if (!role) {
+        try {
+            role = await guild.roles.create({
+                name: 'Verified',
+                color: 0x57F287,
+                reason: 'Tự động tạo role Verified cho người chơi đã xác thực Minecraft'
+            });
+        } catch (err) {
+            console.error('Không thể tự động tạo role Verified:', err);
+        }
+    }
+    return role;
+}
+
 app.get('/api/link/status', (req, res) => {
     if (!req.session || !req.session.user) {
         return res.json({ loggedIn: false, linked: false });
@@ -481,7 +501,7 @@ app.post('/api/link/submit', async (req, res) => {
             if (guild) {
                 const member = await guild.members.fetch(req.session.user.id).catch(() => null);
                 if (member) {
-                    let verifiedRole = guild.roles.cache.find(r => r.name.toLowerCase() === 'verified' || r.name.toLowerCase() === 'minecraft player' || r.name.toLowerCase() === 'thành viên');
+                    const verifiedRole = await getOrCreateVerifiedRole(guild);
                     if (verifiedRole) {
                         await member.roles.add(verifiedRole, 'Liên kết tài khoản Minecraft thành công').catch(() => {});
                     }
