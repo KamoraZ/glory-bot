@@ -561,9 +561,12 @@ app.post('/api/client/link', async (req, res) => {
         };
         fs.writeFileSync(linkedAccountsFile, JSON.stringify(accounts, null, 2), 'utf8');
 
-        if (guildId) {
-            const guild = client.guilds.cache.get(guildId);
-            if (guild) {
+        const targetGuilds = guildId && client.guilds.cache.has(guildId) 
+            ? [client.guilds.cache.get(guildId)] 
+            : Array.from(client.guilds.cache.values());
+
+        for (const guild of targetGuilds) {
+            try {
                 const member = await guild.members.fetch(discordId).catch(() => null);
                 if (member) {
                     const targetRole = await getOrCreateVerifiedRole(guild, roleTitle);
@@ -571,6 +574,8 @@ app.post('/api/client/link', async (req, res) => {
                         await member.roles.add(targetRole, `Glory Client Link: ${mcUsername} (${roleTitle})`).catch(() => {});
                     }
                 }
+            } catch (err) {
+                console.error('Lỗi cấp role trong guild:', err);
             }
         }
 
