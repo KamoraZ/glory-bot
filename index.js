@@ -460,6 +460,9 @@ app.post('/api/link/submit', async (req, res) => {
 
     try {
         const accounts = getLinkedAccounts();
+        if (accounts[req.session.user.id]) {
+            return res.status(400).json({ success: false, error: 'Tài khoản Discord của bạn đã được liên kết rồi. Vui lòng tạo ticket nếu muốn thay đổi.' });
+        }
         accounts[req.session.user.id] = {
             discordId: req.session.user.id,
             discordTag: req.session.user.username,
@@ -1092,6 +1095,9 @@ client.on('interactionCreate', async interaction => {
 
             try {
                 const accounts = getLinkedAccounts();
+                if (accounts[interaction.user.id]) {
+                    return interaction.editReply({ content: '❌ Tài khoản Discord của bạn đã được liên kết với một tài khoản Minecraft rồi! Vui lòng tạo ticket nếu muốn xóa verify cũ.' });
+                }
                 accounts[interaction.user.id] = {
                     discordId: interaction.user.id,
                     discordTag: interaction.user.tag,

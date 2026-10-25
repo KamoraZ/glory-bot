@@ -129,6 +129,22 @@ module.exports = {
             }
         } catch (e) {}
 
+        if (accounts[interaction.user.id]) {
+            return interaction.reply({
+                content: `❌ Tài khoản Discord của bạn đã được liên kết với tài khoản Minecraft **\`${accounts[interaction.user.id].mcUsername}\`** rồi!\n🔒 Bạn không thể tự thay đổi hoặc verify lại. Nếu muốn đổi tài khoản, vui lòng **tạo ticket** để yêu cầu BQT (Admin) xóa verify cũ.`,
+                ephemeral: true
+            });
+        }
+
+        for (const [dId, acc] of Object.entries(accounts)) {
+            if (acc.friendId === friendId && dId !== interaction.user.id) {
+                return interaction.reply({
+                    content: `❌ Tài khoản Minecraft / Friend ID này đã được liên kết với một tài khoản Discord khác!`,
+                    ephemeral: true
+                });
+            }
+        }
+
         accounts[interaction.user.id] = {
             discordId: interaction.user.id,
             discordTag: interaction.user.tag,
