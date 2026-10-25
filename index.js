@@ -475,9 +475,12 @@ async function getOrCreateVerifiedRole(guild, roleTitle = 'Verified') {
                 color: targetName.toLowerCase().includes('admin') ? 0xE74C3C : 0x57F287,
                 reason: `Tự động tạo role cho người chơi xác thực: ${targetName}`
             });
+            console.log(`[ROLE] Đã tạo role mới "${targetName}" trong server ${guild.name}`);
         } catch (err) {
-            console.error('Không thể tự động tạo role:', err);
+            console.error(`[ROLE ERROR] Không thể tạo role "${targetName}" trong server ${guild.name}:`, err.message);
         }
+    } else {
+        console.log(`[ROLE] Đã tìm thấy role "${role.name}" trong server ${guild.name}`);
     }
     return role;
 }
@@ -565,17 +568,28 @@ app.post('/api/client/link', async (req, res) => {
             ? [client.guilds.cache.get(guildId)] 
             : Array.from(client.guilds.cache.values());
 
+        console.log(`[CLIENT LINK] Đang xử lý cấp role cho user ${discordId} trên ${targetGuilds.length} server.`);
+
         for (const guild of targetGuilds) {
             try {
-                const member = await guild.members.fetch(discordId).catch(() => null);
+                console.log(`[LINK] Đang tìm thành viên ${discordId} trong server: ${guild.name} (${guild.id})`);
+                const member = await guild.members.fetch(discordId).catch(err => {
+                    console.log(`[LINK] Không tìm thấy thành viên ${discordId} trong server ${guild.name}: ${err.message}`);
+                    return null;
+                });
                 if (member) {
+                    console.log(`[LINK] Đã tìm thấy thành viên ${member.user.tag}. Đang lấy role Verified/Title: ${roleTitle}`);
                     const targetRole = await getOrCreateVerifiedRole(guild, roleTitle);
                     if (targetRole) {
-                        await member.roles.add(targetRole, `Glory Client Link: ${mcUsername} (${roleTitle})`).catch(() => {});
+                        console.log(`[ROLE] Đang thêm role "${targetRole.name}" cho ${member.user.tag}...`);
+                        await member.roles.add(targetRole, `Glory Client Link: ${mcUsername} (${roleTitle})`);
+                        console.log(`[SUCCESS] Đã cấp thành công role "${targetRole.name}" cho ${member.user.tag} tại server ${guild.name}!`);
+                    } else {
+                        console.log(`[ROLE WARN] Không tìm thấy hoặc không tạo được role trong server ${guild.name}`);
                     }
                 }
             } catch (err) {
-                console.error('Lỗi cấp role trong guild:', err);
+                console.error(`[ROLE ERROR] Lỗi khi cấp role trong server ${guild.name}:`, err);
             }
         }
 
