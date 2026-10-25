@@ -1051,21 +1051,13 @@ client.once('clientReady', async () => {
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
     try {
-        console.log('🔄 Đang đồng bộ Slash Commands (Global & Guilds)...');
+        console.log('🔄 Đang đồng bộ Global Slash Commands...');
         await rest.put(
             Routes.applicationCommands(client.user.id),
             { body: commandsArray },
         );
 
-        for (const [guildId, guild] of client.guilds.cache) {
-            await rest.put(
-                Routes.applicationGuildCommands(client.user.id, guildId),
-                { body: commandsArray },
-            );
-            console.log(`✨ Đã đăng ký thành công Slash Commands cho server: ${guild.name}`);
-        }
-
-        console.log('✨ Đã đăng ký thành công tất cả Slash Commands!');
+        console.log('✨ Đã đăng ký thành công tất cả Slash Commands (Global)!');
     } catch (error) {
         console.error('❌ Lỗi khi đăng ký commands:', error);
     }
