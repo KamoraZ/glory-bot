@@ -1,23 +1,19 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { createCode } = require('../glory-verify-api');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('verify')
-        .setDescription('Tạo mã xác thực 6 ký tự (cả chữ và số) cho Glory Client - Ahihi'),
+        .setDescription('Tao ma xac thuc 6 ky tu cho Glory Client'),
     async execute(interaction) {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = '';
-        for (let i = 0; i < 6; i++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
+        const { code, expiresAt } = createCode(interaction.user);
 
         const embed = new EmbedBuilder()
-            .setTitle('🔑 Mã Xác Thực Glory Client (6 Ký Tự Alphanumeric)')
-            .setDescription(`Mã xác thực của bạn là: \`\`\`fix\n${code}\`\`\`\n*Ahihi chúc bạn thành công!*`)
-            .setColor(0x57F287)
-            .setTimestamp()
-            .setFooter({ text: 'Glory Client Verification System' });
+            .setColor('#00FF00')
+            .setTitle('🔑 Mã Xác Thực Glory Client')
+            .setDescription(`Mã xác thực 6 ký tự của bạn:\n\`\`\`${code}\`\`\`\n⏰ Hết hạn: <t:${Math.floor(expiresAt / 1000)}:R>\n\nHãy nhập mã này vào Glory Client để liên kết tài khoản!`)
+            .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: false });
+        await interaction.reply({ embeds: [embed], ephemeral: true });
     },
 };

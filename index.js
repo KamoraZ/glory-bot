@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits, Collection, REST, Routes, PermissionsBitField
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
+const { createCode, attach } = require('./glory-verify-api');
 require('dotenv').config();
 
 // Live Console Log Stream Capture
@@ -188,6 +189,47 @@ client.on('messageCreate', async message => {
 // Webhook Server tiếp nhận dữ liệu từ mạng xã hội (Facebook, Zapier, Make,...)
 const session = require('express-session');
 const app = express();
+attach(app, {
+    onLinked: async (entry, info) => {
+        const discordId = entry.discordId;
+        const discordTag = entry.discordTag;
+        const { mcUsername, accountType, hasGloryKey, roleTitle, guildId } = info;
+        if (!discordId || !mcUsername) return;
+
+        const accounts = getLinkedAccounts();
+        accounts[discordId] = {
+            discordId,
+            discordTag: discordTag || 'GloryUser',
+            mcUsername,
+            accountType: accountType || 'Crack / Offline',
+            hasGloryKey: !!hasGloryKey,
+            roleTitle: roleTitle || 'Member',
+            linkedAt: new Date().toISOString()
+        };
+        fs.writeFileSync(linkedAccountsFile, JSON.stringify(accounts, null, 2), 'utf8');
+
+        const targetGuilds = guildId && client.guilds.cache.has(guildId) 
+            ? [client.guilds.cache.get(guildId)] 
+            : Array.from(client.guilds.cache.values());
+
+        console.log(`[CLIENT LINK] Đang xử lý cấp role cho user ${discordId} trên ${targetGuilds.length} server.`);
+
+        for (const guild of targetGuilds) {
+            try {
+                const member = await guild.members.fetch(discordId).catch(() => null);
+                if (member) {
+                    const targetRole = await getOrCreateVerifiedRole(guild, roleTitle);
+                    if (targetRole) {
+                        await member.roles.add(targetRole, `Glory Client Link: ${mcUsername} (${roleTitle})`);
+                        console.log(`[SUCCESS] Đã cấp thành công role "${targetRole.name}" cho ${member.user.tag} tại server ${guild.name}!`);
+                    }
+                }
+            } catch (err) {
+                console.error(`[ROLE ERROR] Lỗi khi cấp role trong server ${guild.name}:`, err);
+            }
+        }
+    }
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
@@ -202,7 +244,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Health check endpoint to prevent Render from sleeping
 app.get('/ping', (req, res) => {
-    res.status(200).send('Bot is active and running 24/7!');
+    res.status(200).json({ status: 'active', uptime: process.uptime() });
 });
 
 // Terms of Service & Privacy Policy Routes
