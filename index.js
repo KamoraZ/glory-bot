@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { createCode, attach } = require('./glory-verify-api');
+const db = require('./db');
 require('dotenv').config();
 
 // Live Console Log Stream Capture
@@ -491,16 +492,9 @@ app.post('/api/dashboard/action/sync', async (req, res) => {
     }
 });
 
-// Minecraft & Discord Account Linking Endpoints
-const linkedAccountsFile = path.join(__dirname, 'linkedAccounts.json');
-
+// Minecraft & Discord Account Linking Endpoints (MongoDB / JSON DB)
 function getLinkedAccounts() {
-    try {
-        if (fs.existsSync(linkedAccountsFile)) {
-            return JSON.parse(fs.readFileSync(linkedAccountsFile, 'utf8'));
-        }
-    } catch (e) {}
-    return {};
+    return db.getAccounts();
 }
 
 // API to get account info for Discord bot /account command
@@ -1089,6 +1083,7 @@ app.listen(PORT, '0.0.0.0', () => {
 
 client.once('clientReady', async () => {
     console.log(`🤖 Bot đã đăng nhập thành công với tên: ${client.user.tag}`);
+    await db.initDB();
 
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
