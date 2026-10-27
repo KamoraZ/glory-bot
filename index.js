@@ -1311,7 +1311,36 @@ client.on('interactionCreate', async interaction => {
     } else if (interaction.isButton()) {
         const { customId, guild, user, channel } = interaction;
 
-        if (customId === 'ticket_create') {
+        if (customId === 'accept_gambling_tos') {
+            const economyPath = path.join(__dirname, 'economy.json');
+            let eco = {};
+            try {
+                if (fs.existsSync(economyPath)) {
+                    eco = JSON.parse(fs.readFileSync(economyPath, 'utf8'));
+                }
+            } catch (e) {}
+
+            const userId = user.id;
+            if (!eco[userId]) {
+                eco[userId] = { balance: 0, lastDaily: 0, acceptedTerms: false };
+            }
+
+            if (eco[userId].acceptedTerms) {
+                return interaction.reply({ content: '✅ Bạn đã xác nhận điều khoản từ trước rồi!', ephemeral: true });
+            }
+
+            eco[userId].acceptedTerms = true;
+            eco[userId].balance += 1000;
+            fs.writeFileSync(economyPath, JSON.stringify(eco, null, 2), 'utf8');
+
+            const embed = new EmbedBuilder()
+                .setTitle('🎉 Chào Mừng Đến Với Hệ Thống Gambling!')
+                .setDescription(`Bạn đã đồng ý với điều khoản thành công và nhận được **+1,000 GloryCoin** khởi nghiệp!\n\n💰 Số dư ví hiện tại: \`${eco[userId].balance.toLocaleString()} GloryCoin\``)
+                .setColor(0x57F287)
+                .setTimestamp();
+
+            await interaction.update({ embeds: [embed], components: [] });
+        } else if (customId === 'ticket_create') {
             const ticketConfigPath = path.join(__dirname, 'ticketConfig.json');
             let config = {};
             try {

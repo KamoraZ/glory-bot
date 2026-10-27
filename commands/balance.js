@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -20,32 +20,47 @@ function saveEconomy(data) {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('balance')
-        .setDescription('Kiểm tra số dư ví xu cá cược của bạn hoặc người khác')
+        .setDescription('Check your or another user\'s GloryCoin balance')
         .addUserOption(option =>
             option.setName('user')
-                .setDescription('Thành viên cần xem ví (để trống nếu xem chính mình)')
+                .setDescription('Target user to check (leave blank to check yourself)')
                 .setRequired(false)),
     async execute(interaction) {
-        const target = interaction.options.getUser('user') || interaction.user;
+        const userId = interaction.user.id;
         const eco = getEconomy();
 
+        if (!eco[userId] || !eco[userId].acceptedTerms) {
+            const tosEmbed = new EmbedBuilder()
+                .setTitle('📜 GAMBLING TERMS OF SERVICE (GLORYCOIN)')
+                .setDescription('You must agree to the terms of service before using the gambling system!\n\n👇 *Click the button below to accept the terms and claim **1,000 GloryCoin** to start!*')
+                .setColor(0xFEE75C);
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('accept_gambling_tos')
+                    .setLabel('✅ Agree & Claim 1,000 GloryCoin')
+                    .setStyle(ButtonStyle.Success)
+            );
+            return interaction.reply({ embeds: [tosEmbed], components: [row], ephemeral: true });
+        }
+
+        const target = interaction.options.getUser('user') || interaction.user;
         if (!eco[target.id]) {
-            eco[target.id] = { balance: 1000, lastDaily: 0 };
+            eco[target.id] = { balance: 0, lastDaily: 0, acceptedTerms: false };
             saveEconomy(eco);
         }
 
         const userEco = eco[target.id];
 
         const embed = new EmbedBuilder()
-            .setTitle(`💰 Ví Xu Cá Cược • ${target.username}`)
+            .setTitle(`💰 GloryCoin Wallet • ${target.username}`)
             .setThumbnail(target.displayAvatarURL())
             .setColor(0xF1C40F)
             .addFields(
-                { name: '🪙 Số dư hiện tại', value: `\`${userEco.balance.toLocaleString()} xu\``, inline: true },
-                { name: '🎁 Trạng thái Daily', value: userEco.lastDaily && Date.now() - userEco.lastDaily < 86400000 ? `<t:${Math.floor((userEco.lastDaily + 86400000) / 1000)}:R>` : '✨ **Có thể nhận ngay!** (Dùng `/daily`)', inline: true }
+                { name: '🪙 Current Balance', value: `\`${userEco.balance.toLocaleString()} GloryCoin\``, inline: true },
+                { name: '🎁 Daily Status', value: userEco.lastDaily && Date.now() - userEco.lastDaily < 86400000 ? `<t:${Math.floor((userEco.lastDaily + 86400000) / 1000)}:R>` : '✨ **Ready to claim!** (Use `/daily`)', inline: true }
             )
             .setTimestamp()
-            .setFooter({ text: 'Gambling System • Gõ /daily để nhận xu miễn phí mỗi ngày' });
+            .setFooter({ text: 'GloryCoin Gambling System • Type /daily for free daily coins' });
 
         await interaction.reply({ embeds: [embed] });
     },

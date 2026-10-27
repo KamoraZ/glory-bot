@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -20,13 +20,23 @@ function saveEconomy(data) {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('daily')
-        .setDescription('Nhận xu thưởng miễn phí mỗi ngày (24 giờ/lần)'),
+        .setDescription('Claim free daily GloryCoin reward (once every 24 hours)'),
     async execute(interaction) {
         const userId = interaction.user.id;
         const eco = getEconomy();
 
-        if (!eco[userId]) {
-            eco[userId] = { balance: 1000, lastDaily: 0 };
+        if (!eco[userId] || !eco[userId].acceptedTerms) {
+            const tosEmbed = new EmbedBuilder()
+                .setTitle('📜 GAMBLING TERMS OF SERVICE (GLORYCOIN)')
+                .setDescription('You must agree to the terms of service before using the gambling system!\n\n👇 *Click the button below to accept the terms and claim **1,000 GloryCoin** to start!*')
+                .setColor(0xFEE75C);
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('accept_gambling_tos')
+                    .setLabel('✅ Agree & Claim 1,000 GloryCoin')
+                    .setStyle(ButtonStyle.Success)
+            );
+            return interaction.reply({ embeds: [tosEmbed], components: [row], ephemeral: true });
         }
 
         const now = Date.now();
@@ -36,20 +46,20 @@ module.exports = {
         if (now - lastDaily < cooldown) {
             const nextTime = Math.floor((lastDaily + cooldown) / 1000);
             return interaction.reply({
-                content: `⏳ Bạn đã nhận xu hôm nay rồi! Hãy quay lại sau <t:${nextTime}:R>.`,
+                content: `⏳ You have already claimed your daily coins today! Try again <t:${nextTime}:R>.`,
                 ephemeral: true
             });
         }
 
-        const reward = Math.floor(Math.random() * 3000) + 2000; // 2000 - 5000 xu
+        const reward = Math.floor(Math.random() * 3000) + 2000; // 2000 - 5000 GloryCoin
         eco[userId].balance += reward;
         eco[userId].lastDaily = now;
         saveEconomy(eco);
 
         const embed = new EmbedBuilder()
-            .setTitle('🎁 Điểm Danh Hàng Ngày (Daily Reward)')
-            .setDescription(`Chúc mừng **${interaction.user.username}** đã nhận thành công **+${reward.toLocaleString()} xu**!`)
-            .addFields({ name: '🪙 Số dư mới', value: `\`${eco[userId].balance.toLocaleString()} xu\``, inline: true })
+            .setTitle('🎁 Daily Reward Claimed')
+            .setDescription(`Congratulations **${interaction.user.username}**! You received **+${reward.toLocaleString()} GloryCoin**!`)
+            .addFields({ name: '🪙 New Balance', value: `\`${eco[userId].balance.toLocaleString()} GloryCoin\``, inline: true })
             .setColor(0x57F287)
             .setTimestamp();
 
