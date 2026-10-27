@@ -29,6 +29,10 @@ module.exports = {
                 { 
                     name: '💾 5. Sao lưu & Quản trị (`/backup`, `/config`)', 
                     value: '• Sao lưu toàn bộ cấu trúc server, kênh, role và cấu hình hệ thống nhanh chóng.' 
+                },
+                { 
+                    name: '🎰 6. Hệ thống Gambling & Giải trí (`/balance`, `/balltop`, `/daily`, `/latxu`, `/roll`)', 
+                    value: '• **`/balance`**: Kiểm tra số dư ví xu cá cược của bản thân hoặc người khác.\n• **`/balltop`**: Xem bảng xếp hạng top 10 đại gia giàu nhất server.\n• **`/daily`**: Nhận quà điểm danh xu miễn phí mỗi 24h (2,000 - 5,000 xu).\n• **`/latxu`**: Cược xu tung đồng xu Sấp/Ngửa nhân đôi.\n• **`/roll`**: Cược xúc xắc quay số 1-100 đọ điểm với Bot (có cơ hội ăn Jackpot 4x).' 
                 }
             )
             .setTimestamp()
