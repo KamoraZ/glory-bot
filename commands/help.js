@@ -31,8 +31,8 @@ module.exports = {
                     value: '• Sao lưu toàn bộ cấu trúc server, kênh, role và cấu hình hệ thống nhanh chóng.' 
                 },
                 { 
-                    name: '🎰 6. Gambling & Entertainment System (`/terms`, `/balance`, `/balltop`, `/daily`, `/coinflip`, `/roll`, `/pay`, `/addmoney`)', 
-                    value: '• **`/terms`**: View gambling terms of service and claim 1,000 GloryCoin starter bonus.\n• **`/balance`**: Check your or another user\'s GloryCoin wallet balance.\n• **`/balltop`**: View the server top 10 richest leaderboard.\n• **`/daily`**: Claim free daily GloryCoin reward (2,000 - 5,000 GloryCoin).\n• **`/coinflip`**: Gamble GloryCoin on a coin toss (Heads/Tails).\n• **`/roll`**: Gamble GloryCoin rolling dice 1-100 against the Bot (chance for 4x Jackpot).\n• **`/pay`**: Transfer GloryCoin from your wallet to another user.\n• **`/addmoney`**: [Admin] Add GloryCoin to a user wallet.' 
+                    name: '🎰 6. Gambling & Entertainment System (`/terms`, `/balance`, `/balltop`, `/daily`, `/coinflip`, `/roll`, `/pay`, `/addmoney`, `/removemoney`)', 
+                    value: '• **`/terms`**: View gambling terms of service and claim 1,000 GloryCoin starter bonus.\n• **`/balance`**: Check your or another user\'s GloryCoin wallet balance.\n• **`/balltop`**: View the server top 10 richest leaderboard.\n• **`/daily`**: Claim free daily GloryCoin reward (2,000 - 5,000 GloryCoin).\n• **`/coinflip`**: Gamble GloryCoin on a coin toss (Heads/Tails).\n• **`/roll`**: Gamble GloryCoin rolling dice 1-100 against the Bot (chance for 4x Jackpot).\n• **`/pay`**: Transfer GloryCoin from your wallet to another user.\n• **`/addmoney`**: [Admin] Add GloryCoin to a user wallet.\n• **`/removemoney`**: [Admin] Remove GloryCoin from a user wallet.' 
                 }
             )
             .setTimestamp()
