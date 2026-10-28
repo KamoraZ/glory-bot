@@ -40,7 +40,9 @@ module.exports = {
         let staffRole = interaction.options.getRole('role_staff');
 
         if (!staffRole) {
-            staffRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'staff');
+            staffRole = interaction.guild.roles.cache.find(r => 
+                r.name.toLowerCase() === 'staff' && !r.permissions.has(PermissionsBitField.Flags.Administrator)
+            );
         }
 
         if (!staffRole) {

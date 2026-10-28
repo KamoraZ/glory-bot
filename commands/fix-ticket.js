@@ -13,28 +13,55 @@ function getTicketConfig() {
     return {};
 }
 
+function saveTicketConfig(data) {
+    fs.writeFileSync(ticketConfigPath, JSON.stringify(data, null, 2));
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('fix-ticket')
-        .setDescription('Cấp quyền role STAFF vào toàn bộ các kênh ticket hiện có'),
+        .setDescription('Cấp quyền role STAFF vào toàn bộ kênh ticket hiện có')
+        .addRoleOption(option =>
+            option.setName('role_staff')
+                .setDescription('Chọn đúng role STAFF (nếu bot nhận nhầm role khác)')
+                .setRequired(false)),
     async execute(interaction) {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
             !interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
             return interaction.reply({ content: '❌ Bạn cần có quyền Quản trị viên hoặc Quản lý Kênh!', ephemeral: true });
         }
 
-        const config = getTicketConfig();
-        const guildConfig = config[interaction.guild.id];
-
-        if (!guildConfig || !guildConfig.staffRoleId) {
-            return interaction.reply({ content: '❌ Hệ thống ticket chưa được cấu hình role STAFF trên server này! Vui lòng chạy `/setup-ticket` trước.', ephemeral: true });
-        }
-
         await interaction.deferReply({ ephemeral: true });
 
+        const guild = interaction.guild;
+        const config = getTicketConfig();
+        let guildConfig = config[guild.id] || {};
+
+        let staffRole = interaction.options.getRole('role_staff');
+
+        if (!staffRole && guildConfig.staffRoleId) {
+            staffRole = guild.roles.cache.get(guildConfig.staffRoleId);
+        }
+
+        // Auto-detect STAFF role, strictly avoiding Administrator roles
+        if (!staffRole) {
+            staffRole = guild.roles.cache.find(r => 
+                (r.name.toLowerCase() === 'staff' || r.name.toLowerCase().includes('staff')) &&
+                !r.permissions.has(PermissionsBitField.Flags.Administrator)
+            );
+        }
+
+        if (!staffRole) {
+            return interaction.editReply({ content: '❌ Không tìm thấy role **STAFF** hợp lệ trên server! Vui lòng chọn role_staff thủ công trong lệnh `/fix-ticket` hoặc `/setup-ticket`.' });
+        }
+
+        // Save corrected staffRoleId to config
+        guildConfig.staffRoleId = staffRole.id;
+        config[guild.id] = guildConfig;
+        saveTicketConfig(config);
+
         try {
-            const guild = interaction.guild;
-            const staffRoleId = guildConfig.staffRoleId;
+            const staffRoleId = staffRole.id;
             const categoryId = guildConfig.categoryId;
 
             let updatedCount = 0;
@@ -70,7 +97,7 @@ module.exports = {
             }
 
             await interaction.editReply({
-                content: `✅ Đã cấp quyền thành công cho role <@&${staffRoleId}> vào **${updatedCount}** kênh ticket và danh mục!`
+                content: `✅ Đã cập nhật và cấp quyền thành công cho role STAFF đúng chuẩn (${staffRole}) vào **${updatedCount}** kênh ticket và danh mục!`
             });
         } catch (error) {
             console.error('Lỗi khi fix quyền ticket:', error);
