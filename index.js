@@ -36,7 +36,8 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.MessageContent
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildInvites
     ]
 });
 
@@ -60,7 +61,45 @@ for (const file of commandFiles) {
 // Hệ thống chống Anti-Raid
 const recentJoins = new Map();
 
-client.on('guildMemberAdd', member => {
+// Hệ thống Invite Tracker
+const inviteConfigPath = path.join(__dirname, 'inviteConfig.json');
+const inviteStatsPath = path.join(__dirname, 'inviteStats.json');
+
+function getInviteConfig() {
+    try {
+        if (fs.existsSync(inviteConfigPath)) return JSON.parse(fs.readFileSync(inviteConfigPath, 'utf8'));
+    } catch (e) {}
+    return {};
+}
+
+function getInviteStats() {
+    try {
+        if (fs.existsSync(inviteStatsPath)) return JSON.parse(fs.readFileSync(inviteStatsPath, 'utf8'));
+    } catch (e) {}
+    return {};
+}
+
+function saveInviteStats(data) {
+    fs.writeFileSync(inviteStatsPath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+client.invites = new Map();
+
+client.on('inviteCreate', async invite => {
+    try {
+        const invites = await invite.guild.invites.fetch();
+        client.invites.set(invite.guild.id, invites);
+    } catch (e) {}
+});
+
+client.on('inviteDelete', async invite => {
+    try {
+        const invites = await invite.guild.invites.fetch();
+        client.invites.set(invite.guild.id, invites);
+    } catch (e) {}
+});
+
+client.on('guildMemberAdd', async member => {
     const guildId = member.guild.id;
 
     // Xử lý Auto-Role khi thành viên mới vào server hoặc rejoin
@@ -76,6 +115,62 @@ client.on('guildMemberAdd', member => {
             }
         }
     } catch (e) {}
+
+    // Xử lý Invite Tracking
+    try {
+        const oldInvites = client.invites.get(guildId);
+        const newInvites = await member.guild.invites.fetch();
+        client.invites.set(guildId, newInvites);
+
+        let usedInvite = null;
+        if (oldInvites) {
+            usedInvite = newInvites.find(i => {
+                const old = oldInvites.get(i.code);
+                return old && old.uses < i.uses;
+            });
+        }
+
+        const inviteConfig = getInviteConfig();
+        const guildInviteConfig = inviteConfig[guildId];
+        const inviteChannel = guildInviteConfig && guildInviteConfig.channelId ? member.guild.channels.cache.get(guildInviteConfig.channelId) : null;
+
+        const stats = getInviteStats();
+        if (!stats[guildId]) stats[guildId] = {};
+
+        if (usedInvite && usedInvite.inviter) {
+            const inviterId = usedInvite.inviter.id;
+            if (!stats[guildId][inviterId]) {
+                stats[guildId][inviterId] = { total: 0, regular: 0, bonus: 0, left: 0 };
+            }
+            stats[guildId][inviterId].total = (stats[guildId][inviterId].total || 0) + 1;
+            stats[guildId][inviterId].regular = (stats[guildId][inviterId].regular || 0) + 1;
+            saveInviteStats(stats);
+
+            const userInvites = stats[guildId][inviterId].total;
+
+            if (inviteChannel) {
+                const embed = new EmbedBuilder()
+                    .setTitle('📥 **THÀNH VIÊN MỚI THAM GIA QUA INVITE**')
+                    .setDescription(`🎉 Chào mừng ${member} đã tham gia server!\n\n👤 **Người mời:** ${usedInvite.inviter} (${usedInvite.inviter.tag})\n🔗 **Link sử dụng:** \`https://discord.gg/${usedInvite.code}\`\n📊 **Tổng số invite của ${usedInvite.inviter.username}:** **${userInvites}**`)
+                    .setColor(0x2ECC71)
+                    .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+                    .setTimestamp();
+                await inviteChannel.send({ embeds: [embed] }).catch(() => {});
+            }
+        } else {
+            if (inviteChannel) {
+                const embed = new EmbedBuilder()
+                    .setTitle('📥 **THÀNH VIÊN MỚI THAM GIA**')
+                    .setDescription(`🎉 Chào mừng ${member} đã tham gia server!\n\n📌 *Không xác định được link mời (Có thể dùng Vanity URL hoặc Custom Invite).*`)
+                    .setColor(0x3498DB)
+                    .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+                    .setTimestamp();
+                await inviteChannel.send({ embeds: [embed] }).catch(() => {});
+            }
+        }
+    } catch (err) {
+        console.error('Lỗi tracking invite:', err);
+    }
 
     const now = Date.now();
     
@@ -1106,6 +1201,17 @@ client.once('clientReady', async () => {
         console.log('✨ Đã đăng ký thành công tất cả Slash Commands (Global) và dọn sạch lệnh dupe!');
     } catch (error) {
         console.error('❌ Lỗi khi đăng ký commands:', error);
+    }
+
+    // Cache invites cho tất cả các server
+    for (const [guildId, guild] of client.guilds.cache) {
+        try {
+            const firstInvites = await guild.invites.fetch();
+            client.invites.set(guildId, firstInvites);
+            console.log(`[INVITE] Đã cache ${firstInvites.size} invites cho server: ${guild.name}`);
+        } catch (e) {
+            console.error(`Không thể fetch invites cho guild ${guild.name}:`, e);
+        }
     }
 
     // Tự động quét bài viết Facebook mỗi 5 phút
