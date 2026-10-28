@@ -16,7 +16,7 @@ function getTicketConfig() {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('fix-ticket')
-        .setDescription('Cấp quyền xem và nhắn tin cho role STAFF vào toàn bộ các kênh ticket hiện có / Grant staff permissions to all ticket channels'),
+        .setDescription('Cấp quyền role STAFF vào toàn bộ các kênh ticket hiện có'),
     async execute(interaction) {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
             !interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
