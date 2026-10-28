@@ -28,8 +28,8 @@ module.exports = {
                 .setRequired(true))
         .addRoleOption(option =>
             option.setName('role_staff')
-                .setDescription('Role nhân viên hỗ trợ / Support staff role')
-                .setRequired(true)),
+                .setDescription('Role nhân viên hỗ trợ (Tự động nhận role STAFF nếu bỏ trống) / Support staff role')
+                .setRequired(false)),
     async execute(interaction) {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
             !interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
@@ -37,7 +37,15 @@ module.exports = {
         }
 
         const category = interaction.options.getChannel('danh_muc');
-        const staffRole = interaction.options.getRole('role_staff');
+        let staffRole = interaction.options.getRole('role_staff');
+
+        if (!staffRole) {
+            staffRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'staff');
+        }
+
+        if (!staffRole) {
+            return interaction.reply({ content: '❌ Không tìm thấy role nào tên là **STAFF** trên server! Vui lòng chỉ định `role_staff` trong lệnh.', ephemeral: true });
+        }
 
         await interaction.deferReply({ ephemeral: true });
 
@@ -48,6 +56,13 @@ module.exports = {
                 staffRoleId: staffRole.id
             };
             saveTicketConfig(config);
+
+            // Apply permission override on category for staff role
+            await category.permissionOverwrites.edit(staffRole.id, {
+                ViewChannel: true,
+                SendMessages: true,
+                ReadMessageHistory: true
+            }).catch(() => {});
 
             const embed = new EmbedBuilder()
                 .setTitle('🎫 **CẤU HÌNH TICKET THÀNH CÔNG / TICKET SETUP SUCCESSFUL**')

@@ -990,6 +990,16 @@ app.post('/api/dashboard/features/ticket-setup', async (req, res) => {
         fs.writeFileSync(ticketConfigPath, JSON.stringify(config, null, 2), 'utf8');
 
         const guild = client.guilds.cache.get(guildId);
+        if (guild && categoryId && staffRoleId) {
+            const category = guild.channels.cache.get(categoryId);
+            if (category) {
+                await category.permissionOverwrites.edit(staffRoleId, {
+                    ViewChannel: true,
+                    SendMessages: true,
+                    ReadMessageHistory: true
+                }).catch(() => {});
+            }
+        }
         const channel = guild ? guild.channels.cache.get(channelId) : null;
         if (channel) {
             const embed = new EmbedBuilder()
@@ -1455,9 +1465,15 @@ client.on('interactionCreate', async interaction => {
                 }
             } catch (e) {}
 
-            const guildConfig = config[guild.id];
-            if (!guildConfig || !guildConfig.categoryId || !guildConfig.staffRoleId) {
-                return interaction.reply({ content: '❌ Hệ thống ticket chưa được cấu hình đầy đủ trên server này! Yêu cầu Admin chạy lệnh `/setup-ticket`.', ephemeral: true });
+            const guildConfig = config[guild.id] || {};
+            let staffRoleId = guildConfig.staffRoleId;
+            if (!staffRoleId) {
+                const staffRole = guild.roles.cache.find(r => r.name.toLowerCase() === 'staff');
+                if (staffRole) staffRoleId = staffRole.id;
+            }
+
+            if (!guildConfig.categoryId || !staffRoleId) {
+                return interaction.reply({ content: '❌ Hệ thống ticket chưa được cấu hình đầy đủ hoặc không tìm thấy role STAFF! Yêu cầu Admin chạy lệnh `/setup-ticket`.', ephemeral: true });
             }
 
             try {
@@ -1480,7 +1496,7 @@ client.on('interactionCreate', async interaction => {
                             allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
                         },
                         {
-                            id: guildConfig.staffRoleId,
+                            id: staffRoleId,
                             allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
                         },
                         {
@@ -1492,7 +1508,7 @@ client.on('interactionCreate', async interaction => {
 
                 const welcomeEmbed = new EmbedBuilder()
                     .setTitle(`🎫 Ticket Hỗ Trợ / Support Ticket - ${user.tag}`)
-                    .setDescription(`🇻🇳 Chào ${user}, BQT đã nhận được yêu cầu hỗ trợ của bạn. Vui lòng mô tả chi tiết vấn đề. Nhân viên hỗ trợ (<@&${guildConfig.staffRoleId}>) sẽ phản hồi sớm nhất!\n\n🇺🇸 Hello ${user}, staff have received your request. Please describe your issue in detail. Staff (<@&${guildConfig.staffRoleId}>) will respond shortly!\n\n*Nhấn nút **Đóng Ticket / Close Ticket** bên dưới khi hoàn tất.*`)
+                    .setDescription(`🇻🇳 Chào ${user}, BQT đã nhận được yêu cầu hỗ trợ của bạn. Vui lòng mô tả chi tiết vấn đề. Nhân viên hỗ trợ (<@&${staffRoleId}>) sẽ phản hồi sớm nhất!\n\n🇺🇸 Hello ${user}, staff have received your request. Please describe your issue in detail. Staff (<@&${staffRoleId}>) will respond shortly!\n\n*Nhấn nút **Đóng Ticket / Close Ticket** bên dưới khi hoàn tất.*`)
                     .setColor(0x5865F2)
                     .setTimestamp();
 
@@ -1505,7 +1521,7 @@ client.on('interactionCreate', async interaction => {
                             .setEmoji('🔒')
                     );
 
-                await ticketChannel.send({ content: `${user} | <@&${guildConfig.staffRoleId}>`, embeds: [welcomeEmbed], components: [closeRow] });
+                await ticketChannel.send({ content: `${user} | <@&${staffRoleId}>`, embeds: [welcomeEmbed], components: [closeRow] });
 
                 await interaction.editReply({ content: `✅ Đã tạo kênh ticket thành công / Ticket channel created: ${ticketChannel}!` });
             } catch (err) {
