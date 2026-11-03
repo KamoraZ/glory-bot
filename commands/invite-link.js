@@ -20,6 +20,14 @@ module.exports = {
                 reason: `Được tạo bởi ${interaction.user.tag} (${interaction.user.id})`
             });
 
+            // Update client invites cache immediately so invite tracker recognizes it
+            if (interaction.client.invites) {
+                const freshInvites = await interaction.guild.invites.fetch().catch(() => null);
+                if (freshInvites) {
+                    interaction.client.invites.set(interaction.guild.id, freshInvites);
+                }
+            }
+
             const embed = new EmbedBuilder()
                 .setTitle('🔗 **TẠO LINK MỜI THÀNH CÔNG**')
                 .setDescription(`Đã tạo link mời cá nhân của bạn tại kênh ${interaction.channel}:\n\`https://discord.gg/${invite.code}\`\n\n📌 *Mỗi khi có người tham gia server qua link này, hệ thống sẽ tự động tính 1 invite cho bạn và gửi thông báo lên kênh cấu hình!*`)

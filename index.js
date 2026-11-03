@@ -127,8 +127,10 @@ client.on('guildMemberAdd', async member => {
         if (oldInvites) {
             usedInvite = newInvites.find(i => {
                 const old = oldInvites.get(i.code);
-                return old && old.uses < i.uses;
+                return (old && old.uses < i.uses) || (!old && i.uses > 0);
             });
+        } else {
+            usedInvite = newInvites.find(i => i.uses > 0);
         }
 
         const inviteConfig = getInviteConfig();
