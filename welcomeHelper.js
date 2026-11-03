@@ -13,6 +13,15 @@ function getWelcomeConfig() {
     return {};
 }
 
+function formatText(text, member) {
+    if (!text) return '';
+    return text
+        .replace(/{user}/g, `<@${member.id}>`)
+        .replace(/{username}/g, member.user.tag)
+        .replace(/{server}/g, member.guild.name)
+        .replace(/{memberCount}/g, member.guild.memberCount);
+}
+
 async function sendWelcomeMessage(member) {
     try {
         const config = getWelcomeConfig();
@@ -24,13 +33,23 @@ async function sendWelcomeMessage(member) {
 
         const secondaryChannel = guildConfig.secondaryChannelId ? (member.guild.channels.cache.get(guildConfig.secondaryChannelId) || await member.guild.channels.fetch(guildConfig.secondaryChannelId).catch(() => null)) : null;
 
+        // Banner Image logic: Custom imageUrl -> Server Banner -> Default aesthetic wallpaper
+        const bannerImage = guildConfig.imageUrl || member.guild.bannerURL({ size: 1024 }) || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
+
+        // Custom or Default Title & Description
+        const defaultTitle = `🌟 CHÀO MỪNG ĐẾN VỚI ${member.guild.name}! 🎉`;
+        const defaultDescription = `Chào mừng thành viên tuyệt vời <@${member.id}> (**${member.user.tag}**) đã đặt chân đến thiên đường của chúng ta! 🚀\n\n───────────────────────────────────────\n📊 **Thứ tự gia nhập:** \`#${member.guild.memberCount}\`\n📅 **Tài khoản tạo:** <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>\n🛡️ **Trạng thái bảo mật:** \`Đã xác thực an toàn\` ✨\n\n*Hãy chuẩn bị tinh thần trải nghiệm những điều tuyệt vời nhất tại đây nhé!*`;
+
+        const titleText = guildConfig.customTitle ? formatText(guildConfig.customTitle, member) : defaultTitle;
+        const descriptionText = guildConfig.customDescription ? formatText(guildConfig.customDescription, member) : defaultDescription;
+
         // 1. Main Welcome Embed (Thông báo chính cực xịn)
         const mainEmbed = new EmbedBuilder()
-            .setTitle(`🌟 CHÀO MỪNG ĐẾN VỚI ${member.guild.name}! 🎉`)
-            .setDescription(`Chào mừng thành viên tuyệt vời <@${member.id}> (**${member.user.tag}**) đã đặt chân đến thiên đường của chúng ta! 🚀\n\n───────────────────────────────────────\n📊 **Thứ tự gia nhập:** \`#${member.guild.memberCount}\`\n📅 **Tài khoản tạo:** <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>\n🛡️ **Trạng thái bảo mật:** \`Đã xác thực an toàn\` ✨\n\n*Hãy chuẩn bị tinh thần trải nghiệm những điều tuyệt vời nhất tại đây nhé!*`)
+            .setTitle(titleText)
+            .setDescription(descriptionText)
             .setColor(0x00FFFF)
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
-            .setImage(member.guild.bannerURL({ size: 1024 }) || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop')
+            .setImage(bannerImage)
             .setFooter({ text: `${member.guild.name} • Thành viên thứ #${member.guild.memberCount}`, iconURL: member.guild.iconURL({ dynamic: true }) })
             .setTimestamp();
 
@@ -43,26 +62,25 @@ async function sendWelcomeMessage(member) {
             .setFooter({ text: `Hệ thống Ultimate Welcome Engine`, iconURL: member.guild.iconURL({ dynamic: true }) })
             .setTimestamp();
 
-        // Interactive Buttons (Add các nút bấm để di chuyển kênh)
+        // Build Buttons (Link to specific channels if configured, otherwise fallback to interaction customId)
+        const rulesButton = guildConfig.rulesChannelId
+            ? new ButtonBuilder().setLabel('📜 Nội quy').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${member.guild.id}/${guildConfig.rulesChannelId}`)
+            : new ButtonBuilder().setCustomId('welcome_rules').setLabel('📜 Nội quy').setStyle(ButtonStyle.Secondary);
+
+        const rolesButton = guildConfig.rolesChannelId
+            ? new ButtonBuilder().setLabel('🎭 Nhận Role').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${member.guild.id}/${guildConfig.rolesChannelId}`)
+            : new ButtonBuilder().setCustomId('welcome_roles').setLabel('🎭 Nhận Role').setStyle(ButtonStyle.Secondary);
+
+        const chatButton = guildConfig.chatChannelId
+            ? new ButtonBuilder().setLabel('💬 Trò chuyện').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${member.guild.id}/${guildConfig.chatChannelId}`)
+            : new ButtonBuilder().setCustomId('welcome_chat').setLabel('💬 Trò chuyện').setStyle(ButtonStyle.Secondary);
+
+        const ticketButton = guildConfig.ticketChannelId
+            ? new ButtonBuilder().setLabel('🎫 Hỗ trợ').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${member.guild.id}/${guildConfig.ticketChannelId}`)
+            : new ButtonBuilder().setCustomId('welcome_ticket').setLabel('🎫 Hỗ trợ').setStyle(ButtonStyle.Primary);
+
         const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('welcome_rules')
-                    .setLabel('📜 Nội quy')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
-                    .setCustomId('welcome_roles')
-                    .setLabel('🎭 Nhận Role')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
-                    .setCustomId('welcome_chat')
-                    .setLabel('💬 Trò chuyện')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
-                    .setCustomId('welcome_ticket')
-                    .setLabel('🎫 Hỗ trợ')
-                    .setStyle(ButtonStyle.Primary)
-            );
+            .addComponents(rulesButton, rolesButton, chatButton, ticketButton);
 
         // Send Main Welcome to Main Channel
         await mainChannel.send({ content: `🎉 Chào mừng ${member} xuất hiện tại server!`, embeds: [mainEmbed] });

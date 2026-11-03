@@ -20,7 +20,7 @@ function saveWelcomeConfig(data) {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('setup-welcome')
-        .setDescription('Cấu hình hệ thống Welcome cực xịn (Thông báo chính + Welcome phụ & Nút bấm)')
+        .setDescription('Cấu hình Ultimate Welcome (Kênh, Banner, Custom Embed chính & Nút chuyển kênh)')
         .addChannelOption(option =>
             option.setName('kenh_chinh')
                 .setDescription('Kênh chính gửi thông báo chào mừng (Main Welcome Channel)')
@@ -28,7 +28,39 @@ module.exports = {
                 .setRequired(true))
         .addChannelOption(option =>
             option.setName('kenh_phu')
-                .setDescription('Kênh phụ hướng dẫn / Welcome phụ (Secondary Welcome / Guidance Channel) [Tùy chọn]')
+                .setDescription('Kênh phụ hướng dẫn / Welcome phụ [Tùy chọn]')
+                .addChannelTypes(ChannelType.GuildText)
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('anh_banner')
+                .setDescription('Link ảnh banner / hình nền welcome tuỳ chỉnh [Tùy chọn]')
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('tieu_de_chinh')
+                .setDescription('Tiêu đề embed chính tuỳ chỉnh (Hỗ trợ emoji server) [Tùy chọn]')
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('noi_dung_chinh')
+                .setDescription('Nội dung embed chính tuỳ chỉnh (Dùng {user}, {server}, {memberCount}) [Tùy chọn]')
+                .setRequired(false))
+        .addChannelOption(option =>
+            option.setName('kenh_noi_quy')
+                .setDescription('Kênh Nội quy để nút bấm chuyển thẳng tới [Tùy chọn]')
+                .addChannelTypes(ChannelType.GuildText)
+                .setRequired(false))
+        .addChannelOption(option =>
+            option.setName('kenh_nhan_role')
+                .setDescription('Kênh Nhận Role để nút bấm chuyển thẳng tới [Tùy chọn]')
+                .addChannelTypes(ChannelType.GuildText)
+                .setRequired(false))
+        .addChannelOption(option =>
+            option.setName('kenh_chat')
+                .setDescription('Kênh Trò chuyện chung để nút bấm chuyển thẳng tới [Tùy chọn]')
+                .addChannelTypes(ChannelType.GuildText)
+                .setRequired(false))
+        .addChannelOption(option =>
+            option.setName('kenh_ho_tro')
+                .setDescription('Kênh Hỗ trợ / Ticket để nút bấm chuyển thẳng tới [Tùy chọn]')
                 .addChannelTypes(ChannelType.GuildText)
                 .setRequired(false)),
     async execute(interaction) {
@@ -39,20 +71,35 @@ module.exports = {
 
         const mainChannel = interaction.options.getChannel('kenh_chinh');
         const secondaryChannel = interaction.options.getChannel('kenh_phu');
+        const customImageUrl = interaction.options.getString('anh_banner');
+        const customTitle = interaction.options.getString('tieu_de_chinh');
+        const customDesc = interaction.options.getString('noi_dung_chinh');
+        const rulesChannel = interaction.options.getChannel('kenh_noi_quy');
+        const rolesChannel = interaction.options.getChannel('kenh_nhan_role');
+        const chatChannel = interaction.options.getChannel('kenh_chat');
+        const supportChannel = interaction.options.getChannel('kenh_ho_tro');
 
         await interaction.deferReply({ ephemeral: true });
 
         try {
             const config = getWelcomeConfig();
+            const existing = config[interaction.guild.id] || {};
             config[interaction.guild.id] = {
                 mainChannelId: mainChannel.id,
-                secondaryChannelId: secondaryChannel ? secondaryChannel.id : null
+                secondaryChannelId: secondaryChannel ? secondaryChannel.id : existing.secondaryChannelId || null,
+                imageUrl: customImageUrl || existing.imageUrl || null,
+                customTitle: customTitle || existing.customTitle || null,
+                customDescription: customDesc || existing.customDescription || null,
+                rulesChannelId: rulesChannel ? rulesChannel.id : existing.rulesChannelId || null,
+                rolesChannelId: rolesChannel ? rolesChannel.id : existing.rolesChannelId || null,
+                chatChannelId: chatChannel ? chatChannel.id : existing.chatChannelId || null,
+                ticketChannelId: supportChannel ? supportChannel.id : existing.ticketChannelId || null
             };
             saveWelcomeConfig(config);
 
             const embed = new EmbedBuilder()
                 .setTitle('🌟 **CẤU HÌNH ULTIMATE WELCOME THÀNH CÔNG**')
-                .setDescription(`✅ Đã thiết lập hệ thống chào mừng đỉnh cao cho server!\n\n📌 **Kênh thông báo chính:** ${mainChannel}\n🧭 **Kênh welcome phụ / hướng dẫn:** ${secondaryChannel ? secondaryChannel : '*(Dùng chung kênh chính)*'}\n\n✨ Hệ thống sẽ tự động gửi:\n• **Embed 1 (Thông báo chính):** Chào mừng thành viên kèm avatar, số thứ tự thành viên, thông tin tài khoản và người mời.\n• **Embed 2 (Welcome phụ):** Bảng hướng dẫn nhanh cùng các nút bấm tương tác (Nội quy, Nhận role, Trò chuyện, Hỗ trợ).\n\n*Bạn có thể dùng lệnh \`/test-welcome\` để thử nghiệm ngay lập tức!*`)
+                .setDescription(`✅ Đã thiết lập hệ thống chào mừng đỉnh cao cho server!\n\n📌 **Kênh chính:** ${mainChannel}\n🧭 **Kênh phụ:** ${secondaryChannel ? secondaryChannel : '*(Dùng chung)*'}\n🖼️ **Banner:** ${customImageUrl ? '[Xem ảnh]' : '*(Mặc định)*'}\n📝 **Custom Tiêu đề:** ${customTitle ? `\`${customTitle}\`` : '*(Mặc định)*'}\n💬 **Custom Nội dung:** ${customDesc ? '✅ Đã thiết lập' : '*(Mặc định)*'}\n\n🔗 **Nút chuyển kênh trực tiếp:**\n• 📜 Nội quy: ${rulesChannel ? rulesChannel : '*(Chưa set)*'}\n• 🎭 Nhận Role: ${rolesChannel ? rolesChannel : '*(Chưa set)*'}\n• 💬 Trò chuyện: ${chatChannel ? chatChannel : '*(Chưa set)*'}\n• 🎫 Hỗ trợ: ${supportChannel ? supportChannel : '*(Chưa set)*'}\n\n*Dùng lệnh \`/test-welcome\` để kiểm tra ngay!*`)
                 .setColor(0x00FFFF)
                 .setTimestamp();
 

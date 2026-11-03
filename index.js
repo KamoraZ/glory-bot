@@ -1460,7 +1460,13 @@ client.on('interactionCreate', async interaction => {
                 .setTimestamp();
 
             await interaction.update({ embeds: [embed], components: [] });
-        } else if (customId === 'ticket_create') {
+        } else if (customId === 'welcome_rules') {
+            await interaction.reply({ content: '📜 **Nội quy server:**\n1. Tôn trọng mọi thành viên, không toxic hay xúc phạm người khác.\n2. Không spam tin nhắn, hình ảnh hoặc emoji quá mức.\n3. Không chia sẻ nội dung NSFW, bạo lực hoặc trái pháp luật.\n4. Tuân thủ tuyệt đối các hướng dẫn từ Ban Quản Trị.', ephemeral: true });
+        } else if (customId === 'welcome_roles') {
+            await interaction.reply({ content: '🎭 **Nhận Role:** Hãy tìm các kênh nhận role (Role Panel) trong danh mục chính của server để tự chọn các vai trò game, thông báo và màu sắc theo sở thích!', ephemeral: true });
+        } else if (customId === 'welcome_chat') {
+            await interaction.reply({ content: '💬 **Trò chuyện:** Hãy di chuyển xuống các kênh trò chuyện chung để cùng giao lưu, chém gió và kết bạn với mọi người trong cộng đồng nhé!', ephemeral: true });
+        } else if (customId === 'welcome_ticket' || customId === 'ticket_create') {
             const ticketConfigPath = path.join(__dirname, 'ticketConfig.json');
             let config = {};
             try {
