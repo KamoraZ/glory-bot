@@ -26,10 +26,16 @@ async function sendWelcomeMessage(member) {
     try {
         const config = getWelcomeConfig();
         const guildConfig = config[member.guild.id];
-        if (!guildConfig || !guildConfig.mainChannelId) return false;
+        if (!guildConfig || !guildConfig.mainChannelId) {
+            console.log(`[WELCOME INFO] Server ${member.guild.name} (${member.guild.id}) chưa cấu hình welcome.`);
+            return false;
+        }
 
         const mainChannel = member.guild.channels.cache.get(guildConfig.mainChannelId) || await member.guild.channels.fetch(guildConfig.mainChannelId).catch(() => null);
-        if (!mainChannel) return false;
+        if (!mainChannel) {
+            console.log(`[WELCOME ERROR] Không tìm thấy kênh chính (ID: ${guildConfig.mainChannelId}) tại server ${member.guild.name}`);
+            return false;
+        }
 
         const secondaryChannel = guildConfig.secondaryChannelId ? (member.guild.channels.cache.get(guildConfig.secondaryChannelId) || await member.guild.channels.fetch(guildConfig.secondaryChannelId).catch(() => null)) : null;
 
@@ -89,9 +95,10 @@ async function sendWelcomeMessage(member) {
         const targetSecondaryChannel = secondaryChannel || mainChannel;
         await targetSecondaryChannel.send({ embeds: [secondaryEmbed], components: [row] });
 
+        console.log(`[WELCOME SUCCESS] Đã gửi thành công welcome cho ${member.user.tag} tại server ${member.guild.name}`);
         return true;
     } catch (error) {
-        console.error('Lỗi khi gửi welcome message:', error);
+        console.error('[WELCOME ERROR] Lỗi khi gửi welcome message:', error);
         return false;
     }
 }
