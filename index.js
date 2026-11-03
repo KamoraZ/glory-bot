@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { createCode, attach } = require('./glory-verify-api');
+const { sendWelcomeMessage } = require('./welcomeHelper');
 const db = require('./db');
 require('dotenv').config();
 
@@ -195,6 +196,9 @@ client.on('guildMemberAdd', async member => {
             }).catch(() => {});
         }
     }
+
+    // Gửi hệ thống Ultimate Welcome cực xịn (Thông báo chính + Welcome phụ)
+    await sendWelcomeMessage(member);
 });
 
 // Xử lý Trap Raid Channel (Honeypot)
