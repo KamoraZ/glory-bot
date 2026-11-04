@@ -33,7 +33,14 @@ async function sendWelcomeMessage(member) {
         }
 
         if (!mainChannel) {
-            mainChannel = member.guild.systemChannel || member.guild.channels.cache.find(c => c.isTextBased() && c.permissionsFor(member.guild.members.me)?.has(PermissionsBitField.Flags.SendMessages));
+            mainChannel = member.guild.systemChannel;
+        }
+
+        if (!mainChannel) {
+            const fetchedChannels = await member.guild.channels.fetch().catch(() => null);
+            if (fetchedChannels) {
+                mainChannel = fetchedChannels.find(c => c.isTextBased() && c.permissionsFor(member.guild.members.me)?.has(PermissionsBitField.Flags.SendMessages));
+            }
         }
 
         if (!mainChannel) {

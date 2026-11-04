@@ -123,24 +123,34 @@ client.on('guildMemberAdd', async member => {
         const oldInvites = client.invites.get(guildId);
         // Chờ 1.2 giây để Discord API cập nhật số lần sử dụng invite (uses count)
         await new Promise(resolve => setTimeout(resolve, 1200));
-        const newInvites = await member.guild.invites.fetch();
-        client.invites.set(guildId, newInvites);
-
-        console.log(`[INVITE DEBUG] oldInvites exists: ${!!oldInvites}, size: ${oldInvites ? oldInvites.size : 0}`);
-        console.log(`[INVITE DEBUG] newInvites size: ${newInvites.size}`);
-        newInvites.forEach(i => {
-            const old = oldInvites ? oldInvites.get(i.code) : null;
-            console.log(`[INVITE] code: ${i.code}, oldUses: ${old ? old.uses : 'N/A'}, newUses: ${i.uses}, inviter: ${i.inviter ? i.inviter.tag : 'Unknown'}`);
-        });
+        let newInvites = await member.guild.invites.fetch().catch(() => null);
 
         let usedInvite = null;
-        if (oldInvites) {
+        if (oldInvites && newInvites) {
             usedInvite = newInvites.find(i => {
                 const old = oldInvites.get(i.code);
                 return (old && old.uses < i.uses) || (!old && i.uses > 0);
             });
-        } else {
+
+            // Nếu lần 1 chưa thấy tăng use count (do API delay), chờ thêm 1.5s và fetch lần 2
+            if (!usedInvite) {
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                newInvites = await member.guild.invites.fetch().catch(() => newInvites);
+                if (newInvites) {
+                    usedInvite = newInvites.find(i => {
+                        const old = oldInvites.get(i.code);
+                        return (old && old.uses < i.uses) || (!old && i.uses > 0);
+                    });
+                }
+            }
+        }
+
+        if (!usedInvite && newInvites) {
             usedInvite = newInvites.find(i => i.uses > 0);
+        }
+
+        if (newInvites) {
+            client.invites.set(guildId, newInvites);
         }
 
         console.log(`[INVITE DEBUG] usedInvite detected: ${usedInvite ? usedInvite.code : 'None'}`);
