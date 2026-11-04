@@ -20,10 +20,10 @@ function saveInviteConfig(data) {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('setup-invite')
-        .setDescription('Cấu hình kênh gửi thông báo khi có thành viên tham gia qua link mời')
+        .setDescription('Cấu hình kênh nhận thông báo thành viên tham gia qua link mời')
         .addChannelOption(option =>
             option.setName('kenh')
-                .setDescription('Kênh nhận thông báo invite')
+                .setDescription('Chọn kênh nhận thông báo invite')
                 .addChannelTypes(ChannelType.GuildText)
                 .setRequired(true)),
     async execute(interaction) {
@@ -33,7 +33,6 @@ module.exports = {
         }
 
         const channel = interaction.options.getChannel('kenh');
-
         await interaction.deferReply({ ephemeral: true });
 
         try {
@@ -45,7 +44,7 @@ module.exports = {
 
             const embed = new EmbedBuilder()
                 .setTitle('⚙️ **CẤU HÌNH KÊNH INVITE THÀNH CÔNG**')
-                .setDescription(`✅ Đã thiết lập kênh thông báo invite thành công tại ${channel}!\n\nTừ bây giờ mọi thông báo người tham gia và số lượng invite sẽ được gửi vào đây.`)
+                .setDescription(`✅ Đã thiết lập kênh thông báo invite tại ${channel}!\n\nMọi thông báo thành viên mới gia nhập và người mời sẽ được gửi vào đây.`)
                 .setColor(0x3498DB)
                 .setTimestamp();
 

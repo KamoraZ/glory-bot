@@ -149,6 +149,11 @@ client.on('guildMemberAdd', async member => {
             usedInvite = newInvites.find(i => i.uses > 0);
         }
 
+        if (usedInvite && usedInvite.inviter && usedInvite.inviter.id === member.user.id) {
+            console.log(`[INVITE DEBUG] Phát hiện self-invite: ${member.user.tag} tự dùng link của chính mình.`);
+            usedInvite = null;
+        }
+
         if (newInvites) {
             client.invites.set(guildId, newInvites);
         }
