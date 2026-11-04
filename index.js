@@ -101,6 +101,7 @@ client.on('inviteDelete', async invite => {
 });
 
 client.on('guildMemberAdd', async member => {
+    console.log(`[GUILD_MEMBER_ADD] 🟢 Thành viên ${member.user.tag} (${member.id}) đã tham gia server ${member.guild.name}`);
     const guildId = member.guild.id;
 
     // Xử lý Auto-Role khi thành viên mới vào server hoặc rejoin
@@ -135,7 +136,9 @@ client.on('guildMemberAdd', async member => {
 
         const inviteConfig = getInviteConfig();
         const guildInviteConfig = inviteConfig[guildId];
-        const inviteChannel = guildInviteConfig && guildInviteConfig.channelId ? member.guild.channels.cache.get(guildInviteConfig.channelId) : null;
+        const inviteChannel = (guildInviteConfig && guildInviteConfig.channelId 
+            ? member.guild.channels.cache.get(guildInviteConfig.channelId) 
+            : null) || member.guild.systemChannel;
 
         const stats = getInviteStats();
         if (!stats[guildId]) stats[guildId] = {};
@@ -1192,7 +1195,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🌐 Webhook server đang lắng nghe tại cổng ${PORT} trên 0.0.0.0`);
 });
 
-client.once('clientReady', async () => {
+client.once('ready', async () => {
     console.log(`🤖 Bot đã đăng nhập thành công với tên: ${client.user.tag}`);
     await db.initDB();
 
@@ -1229,6 +1232,15 @@ client.once('clientReady', async () => {
             console.error(`Không thể fetch invites cho guild ${guild.name}:`, e);
         }
     }
+
+    // Tự động cache invites khi bot tham gia server mới
+    client.on('guildCreate', async guild => {
+        try {
+            const invites = await guild.invites.fetch();
+            client.invites.set(guild.id, invites);
+            console.log(`[INVITE] Đã cache ${invites.size} invites cho server mới: ${guild.name}`);
+        } catch (e) {}
+    });
 
     // Tự động quét bài viết Facebook mỗi 5 phút
     setInterval(async () => {

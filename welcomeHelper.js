@@ -26,28 +26,32 @@ async function sendWelcomeMessage(member) {
     try {
         const config = getWelcomeConfig();
         const guildConfig = config[member.guild.id];
-        if (!guildConfig || !guildConfig.mainChannelId) {
-            console.log(`[WELCOME INFO] Server ${member.guild.name} (${member.guild.id}) chưa cấu hình welcome.`);
-            return false;
+        let mainChannel = null;
+
+        if (guildConfig && guildConfig.mainChannelId) {
+            mainChannel = member.guild.channels.cache.get(guildConfig.mainChannelId) || await member.guild.channels.fetch(guildConfig.mainChannelId).catch(() => null);
         }
 
-        const mainChannel = member.guild.channels.cache.get(guildConfig.mainChannelId) || await member.guild.channels.fetch(guildConfig.mainChannelId).catch(() => null);
         if (!mainChannel) {
-            console.log(`[WELCOME ERROR] Không tìm thấy kênh chính (ID: ${guildConfig.mainChannelId}) tại server ${member.guild.name}`);
+            mainChannel = member.guild.systemChannel;
+        }
+
+        if (!mainChannel) {
+            console.log(`[WELCOME INFO] Server ${member.guild.name} (${member.guild.id}) chưa cấu hình welcome và không tìm thấy system channel.`);
             return false;
         }
 
-        const secondaryChannel = guildConfig.secondaryChannelId ? (member.guild.channels.cache.get(guildConfig.secondaryChannelId) || await member.guild.channels.fetch(guildConfig.secondaryChannelId).catch(() => null)) : null;
+        const secondaryChannel = guildConfig && guildConfig.secondaryChannelId ? (member.guild.channels.cache.get(guildConfig.secondaryChannelId) || await member.guild.channels.fetch(guildConfig.secondaryChannelId).catch(() => null)) : null;
 
         // Banner Image logic: Custom imageUrl -> Server Banner -> Default aesthetic wallpaper
-        const bannerImage = guildConfig.imageUrl || member.guild.bannerURL({ size: 1024 }) || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
+        const bannerImage = (guildConfig && guildConfig.imageUrl) || member.guild.bannerURL({ size: 1024 }) || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
 
         // Custom or Default Title & Description
         const defaultTitle = `🌟 CHÀO MỪNG ĐẾN VỚI ${member.guild.name}! 🎉`;
         const defaultDescription = `Chào mừng thành viên tuyệt vời <@${member.id}> (**${member.user.tag}**) đã đặt chân đến thiên đường của chúng ta! 🚀\n\n───────────────────────────────────────\n📊 **Thứ tự gia nhập:** \`#${member.guild.memberCount}\`\n📅 **Tài khoản tạo:** <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>\n🛡️ **Trạng thái bảo mật:** \`Đã xác thực an toàn\` ✨\n\n*Hãy chuẩn bị tinh thần trải nghiệm những điều tuyệt vời nhất tại đây nhé!*`;
 
-        const titleText = guildConfig.customTitle ? formatText(guildConfig.customTitle, member) : defaultTitle;
-        const descriptionText = guildConfig.customDescription ? formatText(guildConfig.customDescription, member) : defaultDescription;
+        const titleText = guildConfig && guildConfig.customTitle ? formatText(guildConfig.customTitle, member) : defaultTitle;
+        const descriptionText = guildConfig && guildConfig.customDescription ? formatText(guildConfig.customDescription, member) : defaultDescription;
 
         // 1. Main Welcome Embed (Thông báo chính cực xịn)
         const mainEmbed = new EmbedBuilder()
