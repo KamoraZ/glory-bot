@@ -121,6 +121,8 @@ client.on('guildMemberAdd', async member => {
     // Xử lý Invite Tracking
     try {
         const oldInvites = client.invites.get(guildId);
+        // Chờ 1.2 giây để Discord API cập nhật số lần sử dụng invite (uses count)
+        await new Promise(resolve => setTimeout(resolve, 1200));
         const newInvites = await member.guild.invites.fetch();
         client.invites.set(guildId, newInvites);
 
