@@ -33,7 +33,7 @@ async function sendWelcomeMessage(member) {
         }
 
         if (!mainChannel) {
-            mainChannel = member.guild.systemChannel;
+            mainChannel = member.guild.systemChannel || member.guild.channels.cache.find(c => c.isTextBased() && c.permissionsFor(member.guild.members.me)?.has(PermissionsBitField.Flags.SendMessages));
         }
 
         if (!mainChannel) {

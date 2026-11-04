@@ -126,6 +126,13 @@ client.on('guildMemberAdd', async member => {
         const newInvites = await member.guild.invites.fetch();
         client.invites.set(guildId, newInvites);
 
+        console.log(`[INVITE DEBUG] oldInvites exists: ${!!oldInvites}, size: ${oldInvites ? oldInvites.size : 0}`);
+        console.log(`[INVITE DEBUG] newInvites size: ${newInvites.size}`);
+        newInvites.forEach(i => {
+            const old = oldInvites ? oldInvites.get(i.code) : null;
+            console.log(`[INVITE] code: ${i.code}, oldUses: ${old ? old.uses : 'N/A'}, newUses: ${i.uses}, inviter: ${i.inviter ? i.inviter.tag : 'Unknown'}`);
+        });
+
         let usedInvite = null;
         if (oldInvites) {
             usedInvite = newInvites.find(i => {
@@ -136,11 +143,13 @@ client.on('guildMemberAdd', async member => {
             usedInvite = newInvites.find(i => i.uses > 0);
         }
 
+        console.log(`[INVITE DEBUG] usedInvite detected: ${usedInvite ? usedInvite.code : 'None'}`);
+
         const inviteConfig = getInviteConfig();
         const guildInviteConfig = inviteConfig[guildId];
         const inviteChannel = (guildInviteConfig && guildInviteConfig.channelId 
             ? member.guild.channels.cache.get(guildInviteConfig.channelId) 
-            : null) || member.guild.systemChannel;
+            : null) || member.guild.systemChannel || member.guild.channels.cache.find(c => c.isTextBased() && c.permissionsFor(member.guild.members.me)?.has(PermissionsBitField.Flags.SendMessages));
 
         const stats = getInviteStats();
         if (!stats[guildId]) stats[guildId] = {};
