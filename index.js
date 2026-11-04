@@ -149,11 +149,6 @@ client.on('guildMemberAdd', async member => {
             usedInvite = newInvites.find(i => i.uses > 0);
         }
 
-        if (usedInvite && usedInvite.inviter && usedInvite.inviter.id === member.user.id) {
-            console.log(`[INVITE DEBUG] Phát hiện self-invite: ${member.user.tag} tự dùng link của chính mình.`);
-            usedInvite = null;
-        }
-
         if (newInvites) {
             client.invites.set(guildId, newInvites);
         }
@@ -169,8 +164,40 @@ client.on('guildMemberAdd', async member => {
         const stats = getInviteStats();
         if (!stats[guildId]) stats[guildId] = {};
 
-        if (usedInvite && usedInvite.inviter) {
-            const inviterId = usedInvite.inviter.id;
+        let inviterUser = null;
+        let inviterId = null;
+
+        if (usedInvite) {
+            const customInvitesPath = path.join(__dirname, 'customInvites.json');
+            let customInvites = {};
+            try {
+                if (fs.existsSync(customInvitesPath)) {
+                    customInvites = JSON.parse(fs.readFileSync(customInvitesPath, 'utf8'));
+                }
+            } catch (e) {}
+
+            const customMapping = customInvites[usedInvite.code];
+            if (customMapping && customMapping.guildId === guildId) {
+                inviterId = customMapping.userId;
+                inviterUser = await client.users.fetch(inviterId).catch(() => ({ 
+                    id: inviterId, 
+                    tag: customMapping.tag, 
+                    toString: () => `<@${inviterId}>`, 
+                    username: customMapping.tag.split('#')[0] 
+                }));
+            } else if (usedInvite.inviter) {
+                inviterUser = usedInvite.inviter;
+                inviterId = usedInvite.inviter.id;
+            }
+        }
+
+        if (inviterId && inviterId === member.user.id) {
+            console.log(`[INVITE DEBUG] Phát hiện self-invite: ${member.user.tag} tự dùng link của chính mình.`);
+            inviterUser = null;
+            inviterId = null;
+        }
+
+        if (inviterUser && inviterId) {
             if (!stats[guildId][inviterId]) {
                 stats[guildId][inviterId] = { total: 0, regular: 0, bonus: 0, left: 0 };
             }
@@ -179,11 +206,12 @@ client.on('guildMemberAdd', async member => {
             saveInviteStats(stats);
 
             const userInvites = stats[guildId][inviterId].total;
+            const inviterDisplayName = inviterUser.username || inviterUser.tag || 'Unknown';
 
             if (inviteChannel) {
                 const embed = new EmbedBuilder()
                     .setTitle('📥 **THÀNH VIÊN MỚI THAM GIA QUA INVITE**')
-                    .setDescription(`🎉 Chào mừng ${member} đã tham gia server!\n\n👤 **Người mời:** ${usedInvite.inviter} (${usedInvite.inviter.tag})\n🔗 **Link sử dụng:** \`https://discord.gg/${usedInvite.code}\`\n📊 **Tổng số invite của ${usedInvite.inviter.username}:** **${userInvites}**`)
+                    .setDescription(`🎉 Chào mừng ${member} đã tham gia server!\n\n👤 **Người mời:** ${inviterUser} (${inviterDisplayName})\n🔗 **Link sử dụng:** \`https://discord.gg/${usedInvite.code}\`\n📊 **Tổng số invite của ${inviterDisplayName}:** **${userInvites}**`)
                     .setColor(0x2ECC71)
                     .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
                     .setTimestamp();
